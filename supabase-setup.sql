@@ -10,6 +10,12 @@ create table if not exists public.rounds      (id text primary key, data jsonb n
 create table if not exists public.public_docs (id text primary key, data jsonb not null);
 create table if not exists public.admins      (email text primary key);
 
+-- Signed-in members can reach these tables (the rules in step 4 decide which rows); logged-out visitors can't.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.profiles, public.private, public.inbox, public.rounds, public.public_docs to authenticated;
+grant select on public.admins to authenticated;
+revoke all on public.profiles, public.private, public.inbox, public.rounds, public.public_docs, public.admins from anon;
+
 -- 2. Who is who.
 create or replace function public.is_180dc() returns boolean
 language sql stable as $$
@@ -96,7 +102,33 @@ begin
   end loop;
 end $$;
 
--- 6. P&O admins: put the real addresses here (lowercase), then run.
+-- 6. Team and role are private (only you, your matches and P&O see them), so the deck can't read them.
+--    This tells a member which people on their own campus are on a different team, without saying which team.
+create or replace function public.same_campus_other_teams() returns setof uuid
+language sql stable security definer set search_path = public as $$
+  select p.id
+  from public.profiles p
+  join public.private v   on v.id = p.id
+  join public.profiles mp on mp.id = auth.uid()
+  join public.private mv  on mv.id = auth.uid()
+  where public.is_180dc()
+    and p.id <> auth.uid()
+    and p.data->>'campus' = mp.data->>'campus'
+    and coalesce(v.data->>'team','') <> ''
+    and coalesce(mv.data->>'team','') <> ''
+    and v.data->>'team' <> mv.data->>'team'
+$$;
+revoke execute on function public.same_campus_other_teams() from public, anon;
+grant execute on function public.same_campus_other_teams() to authenticated;
+
+-- Older cards kept team and role on the public card. Move them to the private record.
+update public.private v
+   set data = jsonb_strip_nulls(jsonb_build_object('team', p.data->'team', 'role', p.data->'role')) || v.data
+  from public.profiles p
+ where p.id = v.id and (p.data ? 'team' or p.data ? 'role');
+update public.profiles set data = data - 'team' - 'role' where data ? 'team' or data ? 'role';
+
+-- 7. P&O admins: put the real addresses here (lowercase), then run.
 --    To add someone later, run just this line with their address.
 insert into public.admins (email) values
   ('your.name@180dc.org'),
