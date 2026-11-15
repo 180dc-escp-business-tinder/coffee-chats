@@ -128,7 +128,14 @@ update public.private v
  where p.id = v.id and (p.data ? 'team' or p.data ? 'role');
 update public.profiles set data = data - 'team' - 'role' where data ? 'team' or data ? 'role';
 
--- 7. P&O admins: put the real addresses here (lowercase), then run.
+-- 7. Keep-alive. Supabase pauses free projects after about a week with no activity, so a daily
+--    GitHub job (.github/workflows/keep-alive.yml) calls this. It reads no data.
+create or replace function public.keep_alive() returns timestamptz
+language sql stable as $$ select now() $$;
+revoke execute on function public.keep_alive() from public;
+grant execute on function public.keep_alive() to anon, authenticated;
+
+-- 8. P&O admins: put the real addresses here (lowercase), then run.
 --    To add someone later, run just this line with their address.
 insert into public.admins (email) values
   ('your.name@180dc.org'),
