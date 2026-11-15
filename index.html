@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cross-Campus Coffee Chats</title>
+<meta name="description" content="Blind cross-campus coffee chats for 180DC ESCP members.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121621'/%3E%3Cpath d='M9 13h12v5a6 6 0 0 1-12 0z' fill='%23F3F4F7'/%3E%3Cpath d='M21 14h1.5a2.5 2.5 0 0 1 0 5H21' fill='none' stroke='%23F3F4F7' stroke-width='1.8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centred column (max 1040px) under a sticky header with tabs. The deck card is a rail ticket
+   between two campuses; everything else is plain stacked sections. Colour comes only from the six campuses,
+   the interface itself stays ink on paper. */
+:root{
+  --paper:#F3F4F7; --surface:#FFFFFF; --surface-2:#ECEEF3; --ink:#121621; --ink-2:#3A4152; --muted:#636A7C;
+  --line:#DADDE5; --line-2:#C4C8D3; --focus:#3451C6;
+  --good:#1D7849; --good-soft:#E2F2E9; --bad:#B42318; --bad-soft:#FBE8E6; --warn:#97590A;
+  --c-paris:#3451C6; --c-london:#BC1D57; --c-berlin:#2B873E; --c-madrid:#CC5208; --c-turin:#6940D4; --c-warsaw:#0B7C8E;
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:14px;
+  --shadow:0 1px 0 rgba(18,22,33,.04),0 12px 30px -14px rgba(18,22,33,.22);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1117; --surface:#171B23; --surface-2:#20252F; --ink:#ECEEF3; --ink-2:#C3C8D4; --muted:#959CAE;
+  --line:#2A303B; --line-2:#3B4250; --focus:#8EA3FF;
+  --good:#4FC48C; --good-soft:#15301F; --bad:#FF7E70; --bad-soft:#3A1916; --warn:#EDB04F;
+  --c-paris:#7E96F6; --c-london:#F26C9B; --c-berlin:#5DC777; --c-madrid:#FF9B4F; --c-turin:#A68AFA; --c-warsaw:#3FC3D7;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.7);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E1117; --surface:#171B23; --surface-2:#20252F; --ink:#ECEEF3; --ink-2:#C3C8D4; --muted:#959CAE;
+  --line:#2A303B; --line-2:#3B4250; --focus:#8EA3FF;
+  --good:#4FC48C; --good-soft:#15301F; --bad:#FF7E70; --bad-soft:#3A1916; --warn:#EDB04F;
+  --c-paris:#7E96F6; --c-london:#F26C9B; --c-berlin:#5DC777; --c-madrid:#FF9B4F; --c-turin:#A68AFA; --c-warsaw:#3FC3D7;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 34px -16px rgba(0,0,0,.7);
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;color-scheme:light}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.015em}
+h1{font-size:clamp(30px,5vw,42px);font-weight:800;line-height:1.06}
+h2{font-size:22px;font-weight:700;line-height:1.2}
+h3{font-size:16px;font-weight:700;line-height:1.3}
+p{margin:0}
+ul,ol{margin:0}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono)}
+.lbl{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted)}
+.err{color:var(--bad);font-size:14px;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding-block:14px 0}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
+.brand b{font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:-.015em}
+.acct{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.acct .hint{overflow-wrap:anywhere}
+.login{max-width:460px;margin:6vh auto 0}
+.round-chip{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-top:8px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 11px 10px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer;white-space:nowrap;position:relative}
+.tab:hover{color:var(--ink)}
+.tab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab .dot{position:absolute;top:8px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--bad)}
+main{padding-block:26px 72px}
+.page{display:grid;gap:28px}
+
+/* building blocks */
+.stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row-between{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;min-width:0}
+.banner{border:1px solid var(--line-2);background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:14px}
+.banner.warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 10%,var(--surface))}
+.btn{appearance:none;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);font:600 14px var(--f-body);padding:9px 16px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;text-decoration:none}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.primary:hover{opacity:.88}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.btn.small{min-height:32px;padding:4px 10px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.pill{--c:var(--muted);display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--f-body);color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);border:1px solid color-mix(in srgb,var(--c) 32%,transparent);padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+.c-paris{--c:var(--c-paris)}.c-london{--c:var(--c-london)}.c-berlin{--c:var(--c-berlin)}
+.c-madrid{--c:var(--c-madrid)}.c-turin{--c:var(--c-turin)}.c-warsaw{--c:var(--c-warsaw)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:3px 9px;border-radius:7px;background:var(--surface-2);color:var(--ink-2);border:1px solid transparent}
+.chip.hit{background:var(--good-soft);color:var(--good);border-color:color-mix(in srgb,var(--good) 32%,transparent);font-weight:600}
+.tag{font:500 12px var(--f-mono);padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.tag.good{background:var(--good-soft);color:var(--good)}
+.status{font:600 12px var(--f-body);padding:2px 9px;border-radius:999px;white-space:nowrap}
+.status.done{background:var(--good-soft);color:var(--good)}
+.status.missed{background:var(--bad-soft);color:var(--bad)}
+.status.pending{background:var(--surface-2);color:var(--muted)}
+
+/* forms */
+.form{display:grid;gap:18px}
+.field{display:grid;gap:6px;min-width:0}
+.field label,.field .q{font-weight:600;font-size:14px}
+input[type=text],input[type=email],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line-2);border-radius:10px;padding:9px 12px;width:100%;min-height:42px}
+textarea{min-height:76px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:640px){.two,.three{grid-template-columns:minmax(0,1fr)}}
+.opt{appearance:none;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);font:500 13.5px var(--f-body);padding:6px 12px;border-radius:999px;cursor:pointer;min-height:34px}
+.opt:hover{border-color:var(--ink-2)}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* join + profile */
+.join{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:40px;align-items:start}
+@media (max-width:860px){.join{grid-template-columns:minmax(0,1fr)}}
+.steps{list-style:none;padding:0;display:grid;gap:14px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font:600 13px var(--f-mono);width:28px;height:28px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center}
+.mini{padding-left:20px;display:grid;gap:6px;font-size:14px}
+
+/* the ticket */
+.deck{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:36px;align-items:start}
+@media (max-width:780px){.deck{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;max-width:420px;width:100%;margin:0 auto}
+.ticket{--c:var(--muted);position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;transition:transform .24s ease,opacity .24s ease}
+.ticket.top-card{z-index:1;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+.ticket.top-card:active{cursor:grabbing}
+.ticket.under{position:absolute;inset:0;transform:translateY(12px) scale(.955);opacity:.55;pointer-events:none;z-index:0}
+.tk-band{height:8px;background:var(--c)}
+.tk-body{padding:20px 22px 18px;display:flex;flex-direction:column;gap:14px}
+.tk-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.codename{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,7vw,36px);line-height:1.02;letter-spacing:-.025em;overflow-wrap:anywhere}
+.fun{font-size:15px;color:var(--ink-2)}
+.fun::before{content:"\201C"}.fun::after{content:"\201D"}
+.tk-row{display:flex;flex-direction:column;gap:6px}
+.stub{position:relative;border-top:2px dashed var(--line-2);padding:14px 22px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;gap:12px;align-items:end;background:var(--surface-2)}
+.stub::before,.stub::after{content:"";position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:var(--paper);border:1px solid var(--line)}
+.stub::before{left:-11px}.stub::after{right:-11px}
+.stub b{display:block;font-family:var(--f-mono);font-weight:600;font-size:14px;letter-spacing:.05em;overflow-wrap:anywhere}
+.stub .arrow{font-family:var(--f-mono);color:var(--muted);padding-bottom:1px}
+.verdict{position:absolute;top:26px;font:800 20px var(--f-display);letter-spacing:.1em;text-transform:uppercase;padding:3px 12px;border:3px solid;border-radius:8px;pointer-events:none;z-index:2;background:var(--surface)}
+.verdict.meet{right:18px;color:var(--good);transform:rotate(8deg);opacity:var(--meet,0)}
+.verdict.skip{left:18px;color:var(--muted);transform:rotate(-8deg);opacity:var(--skip,0)}
+.deck-actions{display:flex;gap:10px;margin-top:22px}
+.deck-actions .btn{flex:1}
+.picks{list-style:none;padding:0;display:grid}
+.picks li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.picks li:first-child{border-top:0;padding-top:2px}
+.picks b{font-family:var(--f-display);font-size:17px;overflow-wrap:anywhere}
+
+/* match reveal */
+.reveal{perspective:1400px;max-width:560px}
+.flip{display:grid;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.2,.75,.2,1)}
+.flip.open{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);min-width:0}
+.face.front{background:var(--ink);color:var(--paper);border-color:var(--ink);justify-content:center;min-height:300px}
+.face.front .lbl{color:color-mix(in srgb,var(--paper) 62%,transparent)}
+.face.back{transform:rotateY(180deg)}
+.bigname{font:800 clamp(30px,6.5vw,44px)/1.03 var(--f-display);letter-spacing:-.025em;overflow-wrap:anywhere}
+.copyrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.copyrow code{font:500 14px var(--f-mono);user-select:all;-webkit-user-select:all;background:var(--surface-2);padding:6px 10px;border-radius:8px;overflow-wrap:anywhere}
+.swap{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.rate{display:flex;gap:6px;flex-wrap:wrap}
+.rate .opt{min-width:44px;justify-content:center}
+
+/* passport */
+.passport{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.pp-cover{background:var(--ink);color:var(--paper);padding:18px 22px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.pp-cover .lbl{color:color-mix(in srgb,var(--paper) 62%,transparent)}
+.pp-count{font:600 32px var(--f-mono);font-variant-numeric:tabular-nums;line-height:1}
+.stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:18px;padding:24px 22px}
+.stamp{--c:var(--muted);aspect-ratio:1;width:100%;max-width:136px;margin:0 auto;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;padding:10px}
+.stamp.on{border:3px solid var(--c);color:var(--c);box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6.5px var(--c);transform:rotate(var(--rot,0deg))}
+.stamp.off{border:2px dashed var(--line-2);color:var(--muted)}
+.stamp .city{font:700 14px var(--f-mono);letter-spacing:.1em;text-transform:uppercase}
+.stamp small{font:500 11px var(--f-mono);letter-spacing:.04em}
+.board{list-style:none;padding:0;display:grid}
+.board li{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.board li:first-child{border-top:0}
+.board li.me b{text-decoration:underline;text-underline-offset:3px}
+.dots{font-family:var(--f-mono);letter-spacing:2px;color:var(--ink);white-space:nowrap}
+
+/* map + numbers */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:2px}
+.kpi b{font:700 28px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.map-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;overflow-x:auto}
+.map{display:block;width:100%;min-width:480px;height:auto}
+.m-edge{fill:none;stroke:var(--ink);stroke-opacity:.5;stroke-linecap:round}
+.m-none{fill:none;stroke:var(--line-2);stroke-dasharray:2 6;stroke-linecap:round;stroke-width:1.4}
+.m-badge{fill:var(--surface);stroke:var(--ink);stroke-opacity:.6;stroke-width:1.2}
+.m-count{font:600 11px var(--f-mono);fill:var(--ink)}
+.m-node{stroke:var(--surface);stroke-width:3}
+.m-label{font:700 13px var(--f-body);fill:var(--ink)}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:760px}
+th{text-align:left;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td small{display:block;color:var(--muted);font-size:12px}
+.prog{height:6px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ink);transition:width .2s}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;width:max-content;max-width:min(90vw,480px);z-index:20;box-shadow:var(--shadow)}
+#toast.bad{background:var(--bad);color:var(--paper)}
+.skeleton{min-height:200px;display:grid;place-items:center;color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){.flip,.ticket,.prog i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand"><b>Coffee Chats</b><span class="lbl">180DC ESCP · cross-campus</span></div>
+      <div class="acct"><span class="round-chip" id="round" hidden></span><span class="hint" id="acct-email" hidden></span><button class="btn small" id="signout" type="button" hidden>Sign out</button></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </header>
+  <main id="view"><div class="skeleton">Loading the deck…</div></main>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+<script>
+'use strict';
+const CAMPUSES=['Paris','London','Berlin','Madrid','Turin','Warsaw'];
+const TEAMS=['Consulting','P&O','Operations','Finance','Business Development','Marketing','Infrastructure & Automations','Presidency'];
+const ROLES=['Consultant','Project Leader','Associate Director','Director','Board'];
+const SKILLS=['Excel & modelling','Slides & storylining','Market research','Client communication','Case interviews','Public speaking','Project management','Data & coding','Design','Career advice'];
+const FREQ=[['monthly','Once a month'],['every','Every round'],['paused','Pause for now']];
+const REASON={mutual:'Picked each other',picked:'Picked',swap:'Skill swap',newlink:'New campus link',mix:'Cross-team'};
+const STARTERS=['Ask why they chose their codename.','Swap the best project you have each worked on at 180DC.','Ask what their campus does better than yours.','Trade one thing you wish you had known in your first month.'];
+const GEO={London:[-0.13,51.51],Paris:[2.35,48.86],Madrid:[-3.7,40.42],Turin:[7.69,45.07],Berlin:[13.4,52.52],Warsaw:[21.01,52.23]};
+const LABEL={London:[-15,-12,'end'],Paris:[-15,20,'end'],Madrid:[0,30,'middle'],Turin:[0,30,'middle'],Berlin:[0,-18,'middle'],Warsaw:[0,-18,'middle']};
+
+/*MATCH-START*/
+function pairKey(a,b){return a<b?a+'|'+b:b+'|'+a}
+function campusPair(a,b){return a<b?a+'|'+b:b+'|'+a}
+function overlap(a,b){const s=new Set(b||[]);return (a||[]).filter(x=>s.has(x))}
+function mulberry(seed){let t=seed>>>0;return function(){t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^(t>>>15),1|t);r=(r+Math.imul(r^(r>>>7),61|r))^r;return((r^(r>>>14))>>>0)/4294967296}}
+// Pairs one round. Order: mutual picks, then one-way picks (longest wait first), then everyone else
+// by skill swap, team, role and campus pairs that haven't met yet. Always cross-campus, never a repeat pair.
+// Anyone left over joins a pair as a group of three.
+function makePairs(input){
+  const {profiles,picks,history,round,edges,seed}=input;
+  const rand=mulberry(seed||1);
+  const byId=new Map(profiles.map(p=>[p.uid,p]));
+  const met=new Set(),last={};
+  for(const m of history){const ms=m.members;for(let i=0;i<ms.length;i++){last[ms[i]]=Math.max(last[ms[i]]||0,m.round);for(let j=i+1;j<ms.length;j++)met.add(pairKey(ms[i],ms[j]))}}
+  const eligible=[],resting=[];
+  for(const p of profiles){if(p.freq==='paused'||(p.freq!=='every'&&last[p.uid]===round-1))resting.push(p.uid);else eligible.push(p.uid)}
+  const E=new Set(eligible);
+  const jit=new Map(eligible.map(u=>[u,rand()]));
+  const wait=u=>round-(last[u]||0);
+  const order=(a,b)=>wait(b)-wait(a)||jit.get(a)-jit.get(b);
+  const valid=(a,b)=>a!==b&&byId.get(a).campus!==byId.get(b).campus&&!met.has(pairKey(a,b));
+  const pk=u=>(picks[u]||[]).filter(v=>E.has(v)&&v!==u);
+  const taken=new Set(),matches=[];
+  const add=(members,reason)=>{members.forEach(u=>taken.add(u));matches.push({members,reason})};
+  const swapCount=(a,b)=>{const A=byId.get(a),B=byId.get(b);return overlap(A.teach,B.learn).length+overlap(B.teach,A.learn).length};
+  const linkCount=(a,b)=>(edges||{})[campusPair(byId.get(a).campus,byId.get(b).campus)]||0;
+  const score=(a,b)=>{const A=byId.get(a),B=byId.get(b);return Math.min(swapCount(a,b),4)*3+(A.team!==B.team?2:0)+(A.role!==B.role?1:0)+4/(1+linkCount(a,b))+rand()*0.5};
+  const mutual=[];
+  for(const a of eligible)for(const b of pk(a))if(a<b&&pk(b).includes(a)&&valid(a,b))mutual.push([a,b]);
+  mutual.sort((x,y)=>(wait(y[0])+wait(y[1]))-(wait(x[0])+wait(x[1]))||jit.get(x[0])-jit.get(y[0]));
+  for(const [a,b] of mutual)if(!taken.has(a)&&!taken.has(b))add([a,b],'mutual');
+  for(const a of [...eligible].sort(order)){if(taken.has(a))continue;for(const b of pk(a))if(!taken.has(b)&&valid(a,b)){add([a,b],'picked');break}}
+  let rest=eligible.filter(u=>!taken.has(u));const stuck=[];
+  while(rest.length>1){
+    const opts=new Map(rest.map(u=>[u,rest.filter(v=>valid(u,v))]));
+    rest.sort((x,y)=>opts.get(x).length-opts.get(y).length||order(x,y));
+    const a=rest[0],cand=opts.get(a);
+    if(!cand.length){stuck.push(a);rest=rest.slice(1);continue}
+    let best=cand[0],bs=-Infinity;for(const b of cand){const sc=score(a,b);if(sc>bs){bs=sc;best=b}}
+    add([a,best],swapCount(a,best)>0?'swap':linkCount(a,best)===0?'newlink':'mix');
+    rest=rest.filter(u=>u!==a&&u!==best);
+  }
+  stuck.push(...rest);
+  const unmatched=[];
+  for(const u of stuck){
+    let best=null,bs=-Infinity;
+    for(const m of matches){if(m.members.length!==2||!m.members.every(x=>valid(u,x)))continue;const sc=m.members.reduce((t,x)=>t+score(u,x),0);if(sc>bs){bs=sc;best=m}}
+    if(best){best.members.push(u);best.trio=true;taken.add(u)}else unmatched.push(u);
+  }
+  return {matches,unmatched,resting};
+}
+/*MATCH-END*/
+
+const S={phase:'loading',tab:'deck',db:null,user:null,uid:null,isAdmin:false,canWrite:null,
+  profiles:new Map(),me:null,priv:null,inbox:null,round:null,stats:null,allPriv:new Map(),rounds:[],loaded:{},
+  skipOrder:[],optPicks:null,form:null,formErr:'',saving:false,fb:null,preview:null,shuffle:0,endsOn:null,
+  sending:null,confirmDel:null,revealed:new Set(),pending:false,dragging:false};
+const $view=document.getElementById('view'),$tabs=document.getElementById('tabs'),$round=document.getElementById('round');
+
+/* ---------- helpers ---------- */
+function h(tag,attrs,...kids){
+  const el=document.createElement(tag);
+  if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;
+    if(k==='class')el.className=v;else if(k==='value')el.value=v;
+    else if(k.slice(0,2)==='on'&&typeof v==='function')el.addEventListener(k.slice(2),v);
+    else el.setAttribute(k,v===true?'':v)}
+  for(const c of kids.flat(Infinity)){if(c==null||c===false)continue;el.append(c instanceof Node?c:String(c))}
+  return el;
+}
+function s(tag,attrs,...kids){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  if(attrs)for(const k in attrs){if(attrs[k]!=null)el.setAttribute(k,attrs[k])}
+  for(const c of kids.flat(Infinity)){if(c==null||c===false)continue;el.append(c instanceof Node?c:String(c))}
+  return el;
+}
+function hash(str){let x=2166136261;for(let i=0;i<str.length;i++){x^=str.charCodeAt(i);x=Math.imul(x,16777619)}return x>>>0}
+function ck(c){return c?'c-'+c.toLowerCase():''}
+function pill(c){return h('span',{class:'pill '+ck(c)},c||'No campus')}
+function todayISO(add){const d=new Date();d.setDate(d.getDate()+(add||0));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmtDate(iso){if(!iso)return '';const p=String(iso).slice(0,10).split('-').map(Number);const d=new Date(p[0],p[1]-1,p[2]);return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+function plural(n,w,ws){return n+' '+(n===1?w:(ws||w+'s'))}
+function canon(o){if(Array.isArray(o))return '['+o.map(canon).join(',')+']';if(o&&typeof o==='object')return '{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+canon(o[k])).join(',')+'}';return JSON.stringify(o===undefined?null:o)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const reduced=()=>window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let toastT;
+function toast(msg,kind){const t=document.getElementById('toast');t.textContent=msg;t.className=kind||'';t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},4200)}
+function errMsg(e){const c=e&&e.code;
+  if(c==='invalid_argument')return 'That didn’t save: you don’t have permission to change this.';
+  if(c==='quota_exceeded')return 'The app has run out of storage. Tell P&O.';
+  if(c==='resource_exhausted')return 'Too many saves at once. Wait a few seconds and try again.';
+  if(c==='revoked')return 'You’ve been signed out. Reload the page and sign in again.';
+  return 'Saving failed. Check your connection and try again.'}
+
+const queues=new Map();
+function enqueue(path,fn){const prev=queues.get(path)||Promise.resolve();const next=prev.catch(()=>{}).then(fn);queues.set(path,next);return next}
+async function save(path,data){
+  const run=()=>enqueue(path,()=>S.db.doc(path).set(data));
+  try{await run();return true}catch(e){
+    if(e&&e.code==='unavailable'){await sleep(400+Math.random()*700);try{await run();return true}catch(e2){toast(errMsg(e2),'bad');return false}}
+    toast(errMsg(e),'bad');return false}
+}
+async function remove(path){try{await enqueue(path,()=>S.db.doc(path).delete());return true}catch(e){toast(errMsg(e),'bad');return false}}
+
+function loadRevealed(){try{return new Set(JSON.parse(localStorage.getItem('cc-revealed')||'[]'))}catch(e){return new Set()}}
+function storeRevealed(){try{localStorage.setItem('cc-revealed',JSON.stringify([...S.revealed]))}catch(e){}}
+
+/* ---------- rendering ---------- */
+let rq=false;
+function isTyping(){const a=document.activeElement;if(!a||!$view.contains(a))return false;return a.tagName==='TEXTAREA'||a.tagName==='SELECT'||(a.tagName==='INPUT'&&/^(text|email|date)$/.test(a.type))}
+function scheduleRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;if(isTyping()||S.dragging){S.pending=true;return}render()})}
+document.addEventListener('focusout',()=>setTimeout(()=>{if(S.pending&&!isTyping()&&!S.dragging){S.pending=false;render()}},0));
+
+const joined=()=>!!(S.me&&S.priv);
+function tabsFor(){
+  if(S.phase!=='ready')return [];
+  const t=joined()?[['deck','Deck'],['match','My match'],['passport','Passport'],['map','Map'],['profile','Profile']]:[['deck','Join'],['map','Map']];
+  if(S.isAdmin)t.push(['admin','P&O']);
+  return t;
+}
+function renderHeader(){
+  $round.textContent=S.round?('Round '+S.round.number+' · until '+fmtDate(S.round.endsOn)):(S.phase==='ready'?'First round soon':'');
+  $round.hidden=!$round.textContent;
+  $tabs.replaceChildren(...tabsFor().map(([k,l])=>{
+    const b=h('button',{class:'tab',type:'button','aria-current':S.tab===k?'page':null,onclick:()=>go(k)},l);
+    if(k==='match'&&hasUnrevealed())b.append(h('span',{class:'dot',title:'New match'}));
+    return b}));
+}
+function render(){
+  S.pending=false;
+  renderHeader();
+  let v;
+  if(S.phase==='loading')v=h('div',{class:'skeleton'},'Loading the deck…');
+  else if(S.phase==='login')v=loginView();
+  else if(S.phase==='config')v=notice('Almost there','Add your Supabase project URL and key to config.js, then reload this page.');
+  else if(S.phase==='nodb')v=notice('Couldn’t load the deck','Check your connection and reload the page.');
+  else if(S.tab==='admin'&&S.isAdmin)v=adminView();
+  else if(S.tab==='map')v=mapView();
+  else if(!joined())v=joinView();
+  else v=({deck:deckView,match:matchView,passport:passportView,profile:profileView}[S.tab]||deckView)();
+  $view.replaceChildren(v);
+}
+function notice(title,body){return h('div',{class:'panel stack',style:'max-width:560px'},h('h2',null,title),h('p',{class:'muted'},body))}
+const TABS=['deck','match','passport','map','profile','admin'];
+function fromHash(){const k=(location.hash||'').slice(1);return TABS.includes(k)?k:'deck'}
+function go(k){S.form=null;S.formErr='';S.fb=null;S.confirmDel=null;if(location.hash!=='#'+k)location.hash=k;else{S.tab=k;render()}}
+window.addEventListener('hashchange',()=>{S.tab=fromHash();S.form=null;render();window.scrollTo(0,0)});
+S.tab=fromHash();
+
+/* ---------- derived member state ---------- */
+function myMatches(){return ((S.inbox&&S.inbox.matches)||[]).slice().sort((a,b)=>b.round-a.round)}
+function currentMatch(){return S.round?myMatches().find(m=>m.round===S.round.number)||null:null}
+function hasUnrevealed(){const m=joined()&&currentMatch();return !!(m&&!S.revealed.has(m.id))}
+function myMet(){const s=new Set();for(const m of myMatches())for(const p of m.partners||[])s.add(p.uid);return s}
+function validPicks(){
+  const raw=S.optPicks||(S.priv&&S.priv.picks)||[];const met=myMet();
+  return raw.filter(u=>{const p=S.profiles.get(u);return p&&u!==S.uid&&p.campus!==S.me.campus&&p.freq!=='paused'&&!met.has(u)}).slice(0,3);
+}
+function myStamps(){
+  const map=new Map();const fb=(S.priv&&S.priv.feedback)||{};
+  const ms=myMatches().slice().reverse();
+  for(const m of ms)if(fb[m.id]&&fb[m.id].status==='done')for(const p of m.partners||[])if(p.campus&&!map.has(p.campus))map.set(p.campus,m.round);
+  const fromStats=((S.stats&&S.stats.passports)||{})[S.uid]||[];
+  for(const c of fromStats)if(!map.has(c)){const m=ms.find(x=>(x.partners||[]).some(p=>p.campus===c));map.set(c,m?m.round:null)}
+  return map;
+}
+
+/* ---------- the ticket card ---------- */
+function ticketEl(p,opts){
+  const preview=!!(opts&&opts.preview);const me=S.me||{};
+  const myLearn=new Set(me.learn||[]),myTeach=new Set(me.teach||[]);
+  const chips=(list,mine)=>list&&list.length?list.map(t=>h('span',{class:'chip'+(!preview&&mine.has(t)?' hit':'')},t)):h('span',{class:'muted'},preview?'Pick up to 3 below':'Nothing listed');
+  const swap=preview?0:overlap(p.teach,me.learn).length+overlap(me.teach,p.learn).length;
+  return h('article',{class:'ticket '+ck(p.campus)},
+    h('div',{class:'tk-band'}),
+    h('div',{class:'tk-body'},
+      h('div',{class:'tk-head'},p.campus?pill(p.campus):h('span',{class:'pill'},'Campus'),h('span',{class:'lbl'},[p.team,p.role].filter(Boolean).join(' · ')||'Team · Role')),
+      h('h2',{class:'codename'},p.codename||'Your codename'),
+      p.fun?h('p',{class:'fun'},p.fun):null,
+      h('div',{class:'tk-row'},h('span',{class:'lbl'},'Can teach'),h('div',{class:'chips'},chips(p.teach,myLearn))),
+      h('div',{class:'tk-row'},h('span',{class:'lbl'},'Wants to learn'),h('div',{class:'chips'},chips(p.learn,myTeach)))),
+    h('div',{class:'stub'},
+      h('div',null,h('span',{class:'lbl'},'From'),h('b',null,preview?'ANOTHER CAMPUS':(me.campus||'').toUpperCase())),
+      h('span',{class:'arrow','aria-hidden':'true'},'→'),
+      h('div',null,h('span',{class:'lbl'},'To'),h('b',null,(p.campus||'YOUR CAMPUS').toUpperCase())),
+      h('div',{style:'text-align:right'},h('span',{class:'lbl'},'Swap'),h('b',null,preview?'—':(swap?plural(swap,'skill'):'—')))),
+    h('div',{class:'verdict meet','aria-hidden':'true'},'Meet'),
+    h('div',{class:'verdict skip','aria-hidden':'true'},'Skip'));
+}
+
+/* ---------- join + profile form ---------- */
+function formFrom(me,priv){me=me||{};priv=priv||{};
+  return {codename:me.codename||'',name:priv.name||'',email:priv.email||S.email||'',campus:me.campus||'',team:me.team||'',role:me.role||'',
+    teach:[...(me.teach||[])],learn:[...(me.learn||[])],fun:me.fun||'',freq:me.freq||'monthly'}}
+function previewProfile(){const f=S.form||{};return {codename:f.codename,campus:f.campus,team:f.team,role:f.role,teach:f.teach,learn:f.learn,fun:f.fun}}
+function updatePreview(){const pv=document.getElementById('pv');if(pv)pv.replaceChildren(ticketEl(previewProfile(),{preview:true}))}
+function profileForm(o){
+  const f=S.form;
+  const text=(id,label,type,hint,max)=>h('div',{class:'field'},h('label',{for:'f-'+id},label),
+    h('input',{id:'f-'+id,type,value:f[id],maxlength:max,autocomplete:'off',oninput:e=>{f[id]=e.target.value;updatePreview()}}),hint?h('p',{class:'hint'},hint):null);
+  const sel=(id,label,opts)=>h('div',{class:'field'},h('label',{for:'f-'+id},label),
+    h('select',{id:'f-'+id,onchange:e=>{f[id]=e.target.value;updatePreview()}},h('option',{value:''},'Choose…'),opts.map(x=>h('option',{value:x,selected:f[id]===x},x))));
+  const multi=(id,label,hint)=>h('div',{class:'field'},h('span',{class:'q',id:'q-'+id},label),
+    h('div',{class:'chips',role:'group','aria-labelledby':'q-'+id},SKILLS.map(sk=>h('button',{type:'button',class:'opt','aria-pressed':String(f[id].includes(sk)),onclick:e=>{
+      const arr=f[id],i=arr.indexOf(sk);if(i>=0)arr.splice(i,1);else{if(arr.length>=3){toast('Pick up to 3. Unselect one first.');return}arr.push(sk)}
+      e.currentTarget.setAttribute('aria-pressed',String(arr.includes(sk)));updatePreview()}},sk))),h('p',{class:'hint'},hint));
+  const freqs=o.allowPause?FREQ:FREQ.filter(x=>x[0]!=='paused');
+  return h('form',{class:'form',novalidate:true,onsubmit:e=>{e.preventDefault();o.onSubmit()}},
+    text('codename','Codename','text','This is the only name people see in the deck. Make it something nobody can trace to you: Night Owl, Pasta Maker.',24),
+    h('div',{class:'two'},text('name','Your real name','text','Only P&O and your matches see it.',60),text('email','Email for your match','email','Your match uses it to set up the call.',90)),
+    h('div',{class:'three'},sel('campus','Campus',CAMPUSES),sel('team','Team',TEAMS),sel('role','Role',ROLES)),
+    multi('teach','Things you can teach','Up to 3. People who want to learn these will see a match.'),
+    multi('learn','Things you want to learn','Up to 3.'),
+    h('div',{class:'field'},h('label',{for:'f-fun'},'Fun fact'),
+      h('textarea',{id:'f-fun',value:f.fun,maxlength:120,rows:2,oninput:e=>{f.fun=e.target.value;updatePreview()}}),
+      h('p',{class:'hint'},'Keep it vague. If people can guess it’s you, the deck stops being blind.')),
+    h('div',{class:'field'},h('span',{class:'q',id:'q-freq'},'How often do you want a chat?'),
+      h('div',{class:'chips',role:'group','aria-labelledby':'q-freq'},freqs.map(([k,l])=>h('button',{type:'button',class:'opt','aria-pressed':String(f.freq===k),onclick:e=>{
+        f.freq=k;e.currentTarget.parentNode.querySelectorAll('.opt').forEach(b=>b.setAttribute('aria-pressed',String(b===e.currentTarget)))}},l))),
+      h('p',{class:'hint'},'A new round starts every two weeks. Once a month means you sit out every other round.')),
+    S.formErr?h('p',{class:'err',role:'alert'},S.formErr):null,
+    h('div',{class:'row'},h('button',{class:'btn primary',type:'submit',disabled:o.disabled||S.saving},S.saving?'Saving…':o.submitLabel),o.extra||null));
+}
+function validate(f){
+  const cn=f.codename.trim();
+  if(!cn)return 'Add a codename.';
+  for(const [u,p] of S.profiles)if(u!==S.uid&&(p.codename||'').trim().toLowerCase()===cn.toLowerCase())return 'Someone already uses that codename. Try another one.';
+  if(!f.name.trim())return 'Add your real name. Only P&O and your matches see it.';
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim()))return 'Add an email address your match can reach you at.';
+  if(!f.campus)return 'Choose your campus.';
+  if(!f.team)return 'Choose your team.';
+  if(!f.role)return 'Choose your role.';
+  if(!f.teach.length)return 'Pick at least one thing you can teach.';
+  if(!f.learn.length)return 'Pick at least one thing you want to learn.';
+  return '';
+}
+async function saveProfile(){
+  const f=S.form;const err=validate(f);S.formErr=err;if(err){render();return}
+  S.saving=true;render();
+  const first=!joined();
+  const priv=Object.assign({},S.priv||{},{name:f.name.trim(),email:f.email.trim(),picks:[...((S.priv&&S.priv.picks)||[])],feedback:Object.assign({},(S.priv&&S.priv.feedback)||{})});
+  const prof={codename:f.codename.trim(),campus:f.campus,team:f.team,role:f.role,teach:[...f.teach],learn:[...f.learn],fun:f.fun.trim(),freq:f.freq,joined:(S.me&&S.me.joined)||new Date().toISOString()};
+  let ok=await save('private/'+S.uid,priv);if(ok)ok=await save('profiles/'+S.uid,prof);
+  S.saving=false;
+  if(ok){S.form=null;S.formErr='';toast(first?'You’re in. Swipe right on up to three people you’d like to meet.':'Profile saved.')}
+  render();
+}
+function joinView(){
+  if(!S.form)S.form=formFrom(S.me,S.priv);
+  const blocked=S.canWrite===false;
+  return h('div',{class:'join'},
+    h('section',{class:'stack',style:'gap:18px'},
+      h('p',{class:'lbl'},'180DC ESCP · People & Organisation'),
+      h('h1',null,'Have a coffee with someone from another campus.'),
+      h('p',{class:'muted',style:'max-width:46ch;font-size:16px'},'Every round you get a 20 to 30 minute call with a member from another campus. You choose who you’d like to meet, from profiles without names.'),
+      h('ol',{class:'steps'},
+        h('li',null,h('div',null,h('b',null,'Make a blind profile. '),'A codename, your campus and team, what you can teach and what you want to learn.')),
+        h('li',null,h('div',null,h('b',null,'Pick up to three people. '),'Swipe through the deck. Nobody sees who picked them.')),
+        h('li',null,h('div',null,h('b',null,'Get your match. '),'Names are revealed when P&O sends the round. Have the chat, mark it done, collect a passport stamp.'))),
+      h('div',{class:'stack'},h('p',{class:'lbl'},'Your card, as others will see it'),h('div',{id:'pv'},ticketEl(previewProfile(),{preview:true})))),
+    h('section',{class:'panel stack',style:'gap:16px'},
+      h('h2',null,'Join the deck'),
+      blocked?h('p',{class:'banner warn'},'Your account can’t join yet. Ask P&O to check your access.'):null,
+      profileForm({submitLabel:'Join the deck',onSubmit:saveProfile,disabled:blocked,allowPause:false})));
+}
+function profileView(){
+  if(!S.form)S.form=formFrom(S.me,S.priv);
+  return h('div',{class:'join'},
+    h('section',{class:'stack',style:'gap:18px'},
+      h('div',{class:'stack'},h('p',{class:'lbl'},'Your card in the deck'),h('div',{id:'pv'},ticketEl(previewProfile(),{preview:true}))),
+      h('div',{class:'panel stack'},h('h3',null,'Who sees what'),
+        h('ul',{class:'mini'},
+          h('li',null,h('b',null,'Everyone: '),'codename, campus, team, role, skills and fun fact.'),
+          h('li',null,h('b',null,'Your matches and P&O: '),'your real name and email.'),
+          h('li',null,h('b',null,'Only P&O: '),'who you picked and how your chats went.')))),
+    h('section',{class:'panel stack',style:'gap:16px'},
+      h('h2',null,'Your profile'),
+      S.me.freq==='paused'?h('p',{class:'banner'},'You’re paused, so you won’t be matched. Choose how often below to come back.'):null,
+      profileForm({submitLabel:'Save changes',onSubmit:saveProfile,allowPause:true,
+        extra:h('button',{class:'btn',type:'button',onclick:()=>{S.form=null;S.formErr='';render()}},'Undo changes')})));
+}
+
+/* ---------- deck ---------- */
+function deckView(){
+  const me=S.me;const picks=validPicks();const met=myMet();
+  const pool=[...S.profiles].filter(([u,p])=>u!==S.uid&&p.campus&&p.campus!==me.campus&&p.freq!=='paused'&&!met.has(u)&&!picks.includes(u)).map(([u,p])=>Object.assign({uid:u},p));
+  pool.sort((a,b)=>hash(S.uid+a.uid)-hash(S.uid+b.uid));
+  const skipped=new Set(S.skipOrder);
+  const fresh=pool.filter(p=>!skipped.has(p.uid));
+  const again=S.skipOrder.map(u=>pool.find(p=>p.uid===u)).filter(Boolean);
+  const queue=fresh.concat(again);
+  const full=picks.length>=3;
+  let left;
+  if(!queue.length){
+    left=h('div',{class:'panel stack'},h('h2',null,pool.length||picks.length?'You’ve gone through the whole deck.':'Nobody from another campus has joined yet.'),
+      h('p',{class:'muted'},pool.length||picks.length?'New people show up here as they join.':'Share the link with members on other campuses. Their cards will show up here.'));
+  }else{
+    const top=queue[0],next=queue[1];
+    const card=ticketEl(top);card.classList.add('top-card');card.setAttribute('aria-label',top.codename+', '+top.campus);
+    let under=null;if(next){under=ticketEl(next);under.classList.add('under');under.setAttribute('aria-hidden','true')}
+    const doSkip=()=>{S.skipOrder=S.skipOrder.filter(x=>x!==top.uid);S.skipOrder.push(top.uid);render()};
+    const doMeet=()=>{if(validPicks().length>=3){toast('You have 3 picks. Remove one to add someone new.');render();return}addPick(top.uid)};
+    bindSwipe(card,doSkip,doMeet);
+    left=h('div',null,
+      h('div',{class:'stage'},under,card),
+      h('div',{class:'deck-actions'},
+        h('button',{class:'btn',type:'button',id:'skip-btn',onclick:()=>fly(card,-1,doSkip)},'Skip'),
+        h('button',{class:'btn primary',type:'button',id:'meet-btn',disabled:full,onclick:()=>fly(card,1,doMeet)},full?'3 picks used':'Want to meet')),
+      h('p',{class:'hint',style:'text-align:center;margin-top:10px'},
+        fresh.length?(plural(fresh.length,'profile')+' left to see · swipe, or use ← →'):'You’ve seen everyone once. These are the ones you skipped.'));
+  }
+  return h('div',{class:'page'},
+    me.freq==='paused'?h('p',{class:'banner'},'You’re paused, so you won’t be matched. You can still pick people. Change it in Profile.'):null,
+    h('div',{class:'deck'},left,
+      h('aside',{class:'stack',style:'gap:16px'},
+        h('div',{class:'panel stack'},
+          h('div',{class:'row-between'},h('h3',null,'Your picks'),h('span',{class:'mono muted num'},picks.length+' of 3')),
+          picks.length?h('ul',{class:'picks'},picks.map(u=>{const p=S.profiles.get(u);return h('li',null,
+            h('div',{class:'stack',style:'gap:4px'},h('b',null,p.codename),h('div',{class:'row'},pill(p.campus),h('span',{class:'hint'},p.team))),
+            h('button',{class:'btn small',type:'button','aria-label':'Remove '+p.codename,onclick:()=>removePick(u)},'Remove'))}))
+            :h('p',{class:'muted'},'Swipe right on up to three people you’d like to meet.'),
+          h('p',{class:'hint'},'Picks are private. Only P&O sees them, and nobody is told who didn’t pick them.')),
+        h('div',{class:'panel stack'},
+          h('h3',null,'How pairs are made'),
+          h('ol',{class:'mini'},
+            h('li',null,'If you picked each other, you’re matched first.'),
+            h('li',null,'Then one-way picks, if that person is free that round.'),
+            h('li',null,'Everyone else is paired on skills, across teams and roles.')),
+          h('p',{class:'hint'},'You always meet someone from another campus you haven’t met before, and everyone gets a match each round.'),
+          h('p',{class:'hint'},h('span',{class:'chip hit'},'Green'),' skills line up with yours: they can teach what you want to learn, or want to learn what you teach.')))));
+}
+async function addPick(u){const next=validPicks().concat(u).slice(0,3);S.optPicks=next;render();
+  const ok=await save('private/'+S.uid,Object.assign({},S.priv,{picks:next}));
+  if(ok)toast('Picked. '+(3-next.length)+' pick'+(3-next.length===1?'':'s')+' left.');else{S.optPicks=null;render()}}
+async function removePick(u){const next=validPicks().filter(x=>x!==u);S.optPicks=next;render();
+  const ok=await save('private/'+S.uid,Object.assign({},S.priv,{picks:next}));if(!ok){S.optPicks=null;render()}}
+function fly(card,dir,cb){if(reduced()){cb();return}card.style.transform='translateX('+dir*560+'px) rotate('+dir*18+'deg)';card.style.opacity='0';setTimeout(cb,230)}
+function bindSwipe(card,onLeft,onRight){
+  let sx=0,sy=0,dx=0,active=false,id=null;
+  card.addEventListener('pointerdown',e=>{if(e.button!==0)return;active=true;id=e.pointerId;sx=e.clientX;sy=e.clientY;dx=0;S.dragging=true;card.style.transition='none';try{card.setPointerCapture(id)}catch(_){} });
+  card.addEventListener('pointermove',e=>{if(!active||e.pointerId!==id)return;dx=e.clientX-sx;
+    card.style.transform='translateX('+dx+'px) rotate('+dx/22+'deg)';
+    card.style.setProperty('--meet',String(Math.max(0,Math.min(1,dx/110))));card.style.setProperty('--skip',String(Math.max(0,Math.min(1,-dx/110))))});
+  const end=e=>{if(!active||(e&&e.pointerId!==id))return;active=false;S.dragging=false;card.style.transition='';
+    card.style.removeProperty('--meet');card.style.removeProperty('--skip');
+    if(dx>110)fly(card,1,onRight);else if(dx<-110)fly(card,-1,onLeft);else{card.style.transform='';if(S.pending)render()}};
+  card.addEventListener('pointerup',end);card.addEventListener('pointercancel',end);
+}
+document.addEventListener('keydown',e=>{
+  if(S.tab!=='deck'||!joined()||isTyping()||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='ArrowLeft'){const b=document.getElementById('skip-btn');if(b){e.preventDefault();b.click()}}
+  if(e.key==='ArrowRight'){const b=document.getElementById('meet-btn');if(b&&!b.disabled){e.preventDefault();b.click()}}
+});
+
+/* ---------- my match ---------- */
+function matchView(){
+  const cur=currentMatch();const past=myMatches().filter(m=>m!==cur);
+  let main;
+  if(cur)main=revealCard(cur);
+  else if(!S.round)main=h('div',{class:'panel stack',style:'max-width:560px'},h('h2',null,'The first round hasn’t started yet.'),
+    h('p',{class:'muted'},'P&O sends matches every two weeks. Until then, pick up to three people in the deck. Picks count when the pairs are made.'),
+    h('div',null,h('button',{class:'btn primary',type:'button',onclick:()=>go('deck')},'Go to the deck')));
+  else{
+    const lastRound=myMatches().length?myMatches()[0].round:0;
+    const why=S.me.freq==='paused'?'You’re paused. Switch back on in Profile to be matched next round.'
+      :(S.me.freq!=='every'&&lastRound===S.round.number-1)?'You’re on once a month, so you sit out every other round. You’re in the next one.'
+      :'You joined after this round’s pairs were made. You’ll be in the next one.';
+    main=h('div',{class:'panel stack',style:'max-width:560px'},h('h2',null,'You’re not in round '+S.round.number+'.'),h('p',{class:'muted'},why));
+  }
+  return h('div',{class:'page'},main,
+    past.length?h('section',{class:'stack'},h('h3',null,'Earlier chats'),
+      h('div',{class:'tbl-wrap'},h('table',{style:'min-width:520px'},
+        h('thead',null,h('tr',null,h('th',null,'Round'),h('th',null,'With'),h('th',null,'Campus'),h('th',null,'Status'))),
+        h('tbody',null,past.map(m=>{const f=((S.priv&&S.priv.feedback)||{})[m.id];const st=f?f.status:'pending';
+          return h('tr',null,h('td',{class:'num mono'},'R'+m.round),
+            h('td',null,(m.partners||[]).map(p=>h('div',null,p.name||p.codename,h('small',null,p.codename)))),
+            h('td',null,h('div',{class:'row'},(m.partners||[]).map(p=>pill(p.campus)))),
+            h('td',null,h('span',{class:'status '+st},st==='done'?'Done':st==='missed'?'Didn’t happen':'Not marked')))}))))):null);
+}
+function revealCard(m){
+  const open=S.revealed.has(m.id);const ps=m.partners||[];
+  const names=ps.map(p=>p.name||p.codename).join(' and ');
+  const booker=m.booker===S.uid?null:ps.find(p=>p.uid===m.booker);
+  const flip=h('div',{class:'flip'+(open?' open':'')});
+  const front=h('div',{class:'face front'},
+    h('p',{class:'lbl'},'Round '+m.round+(ps.length>1?' · group of three':'')),
+    h('h2',{class:'bigname'},ps.map(p=>p.codename).join(' & ')),
+    h('div',{class:'row'},ps.map(p=>pill(p.campus))),
+    m.mutual?h('p',null,'You picked each other.'):m.youPicked?h('p',null,'You picked them.'):h('p',null,'Matched on what you can teach each other.'),
+    h('div',null,h('button',{class:'btn',type:'button',onclick:()=>{S.revealed.add(m.id);storeRevealed();flip.classList.add('open');setTimeout(()=>{renderHeader();render()},reduced()?0:780)}},'Reveal who it is')));
+  const back=h('div',{class:'face back'},
+    h('p',{class:'lbl'},'Round '+m.round+' · have the chat by '+fmtDate(m.endsOn)),
+    ps.map(p=>h('div',{class:'stack',style:'gap:8px'},
+      h('p',{class:'muted'},p.codename+' is'),
+      h('h2',{class:'bigname'},p.name||p.codename),
+      h('div',{class:'row'},pill(p.campus),h('span',{class:'hint'},[p.team,p.role].filter(Boolean).join(' · '))),
+      p.email?h('div',{class:'copyrow'},h('code',null,p.email),h('button',{class:'btn small',type:'button',onclick:e=>copy(p.email,e.currentTarget)},'Copy')):null,
+      h('div',{class:'swap'},
+        h('div',null,h('span',{class:'lbl'},'You can help with'),h('div',{class:'chips',style:'margin-top:4px'},(p.give||[]).length?p.give.map(t=>h('span',{class:'chip hit'},t)):h('span',{class:'muted'},'Nothing listed in common'))),
+        h('div',null,h('span',{class:'lbl'},'They can help with'),h('div',{class:'chips',style:'margin-top:4px'},(p.get||[]).length?p.get.map(t=>h('span',{class:'chip hit'},t)):h('span',{class:'muted'},'Nothing listed in common')))))),
+    h('p',{class:'banner'},booker?(booker.name||booker.codename)+' books the call, so look out for a message from them.':'You book the call. Send '+(ps.length>1?'them':names)+' a 20 to 30 minute slot this week.'),
+    h('p',{class:'hint'},'Not sure where to start? '+STARTERS[hash(m.id)%STARTERS.length]));
+  if(open)front.setAttribute('inert','');else back.setAttribute('inert','');
+  flip.append(front,back);
+  return h('div',{class:'stack',style:'gap:20px'},h('div',{class:'reveal'},flip),open?feedbackBlock(m):null);
+}
+async function copy(text,btn){
+  try{await navigator.clipboard.writeText(text);toast('Email copied.')}
+  catch(e){const code=btn.previousSibling;if(code){const r=document.createRange();r.selectNodeContents(code);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}toast('Selected. Press Ctrl+C or ⌘C to copy.')}
+}
+function feedbackBlock(m){
+  const mine=((S.priv&&S.priv.feedback)||{})[m.id];
+  if(mine&&!(S.fb&&S.fb.id===m.id)){
+    return h('div',{class:'panel stack',style:'max-width:560px'},
+      h('div',{class:'row-between'},h('h3',null,'How it went'),h('span',{class:'status '+mine.status},mine.status==='done'?'Done':'Didn’t happen')),
+      mine.status==='done'?h('p',null,'Usefulness ',h('b',{class:'num'},mine.rating+' / 5'),mine.note?' · '+mine.note:''):h('p',{class:'muted'},'Thanks for letting P&O know.'),
+      h('div',null,h('button',{class:'btn small',type:'button',onclick:()=>{S.fb={id:m.id,status:mine.status,rating:mine.rating||0,note:mine.note||''};render()}},'Change')));
+  }
+  if(!S.fb||S.fb.id!==m.id)S.fb={id:m.id,status:'',rating:0,note:''};
+  const f=S.fb;
+  return h('div',{class:'panel stack',style:'max-width:560px;gap:16px'},
+    h('h3',null,'After the chat'),
+    h('div',{class:'row',role:'group','aria-label':'Did the chat happen?'},
+      [['done','We had the chat'],['missed','It didn’t happen']].map(([k,l])=>h('button',{type:'button',class:'opt','aria-pressed':String(f.status===k),onclick:()=>{f.status=k;render()}},l))),
+    f.status==='done'?h('div',{class:'field'},h('span',{class:'q',id:'q-rate'},'How useful was it?'),
+      h('div',{class:'rate',role:'group','aria-labelledby':'q-rate'},[1,2,3,4,5].map(n=>h('button',{type:'button',class:'opt','aria-pressed':String(f.rating===n),onclick:()=>{f.rating=n;render()}},String(n)))),
+      h('p',{class:'hint'},'1 = not useful, 5 = very useful')):null,
+    f.status==='done'?h('div',{class:'field'},h('label',{for:'f-note'},'One line on what you took away'),
+      h('textarea',{id:'f-note',rows:2,maxlength:160,value:f.note,oninput:e=>{f.note=e.target.value}}),h('p',{class:'hint'},'Optional. Only P&O sees it.')):null,
+    h('div',{class:'row'},h('button',{class:'btn primary',type:'button',disabled:S.saving,onclick:saveFb},S.saving?'Saving…':'Save'),
+      mine?h('button',{class:'btn',type:'button',onclick:()=>{S.fb=null;render()}},'Cancel'):null));
+}
+async function saveFb(){
+  const f=S.fb;if(!f.status){toast('Say whether the chat happened.');return}
+  if(f.status==='done'&&!f.rating){toast('Rate how useful it was, from 1 to 5.');return}
+  const entry={status:f.status,rating:f.status==='done'?f.rating:null,note:f.status==='done'?(f.note||'').trim():'',at:new Date().toISOString()};
+  const fb=Object.assign({},(S.priv&&S.priv.feedback)||{});fb[f.id]=entry;
+  S.saving=true;render();
+  const ok=await save('private/'+S.uid,Object.assign({},S.priv,{feedback:fb}));
+  S.saving=false;if(ok){S.fb=null;toast(f.status==='done'?'Saved. Your passport has a new stamp.':'Saved. Thanks for letting P&O know.')}
+  render();
+}
+
+/* ---------- passport ---------- */
+function passportView(){
+  const me=S.me;const stamps=myStamps();
+  const others=CAMPUSES.filter(c=>c!==me.campus);
+  const got=others.filter(c=>stamps.has(c));const missing=others.filter(c=>!stamps.has(c));
+  const counts=new Map();for(const [u,list] of Object.entries((S.stats&&S.stats.passports)||{}))if(S.profiles.has(u))counts.set(u,list.length);
+  counts.set(S.uid,Math.max(counts.get(S.uid)||0,got.length));
+  const rows=[...counts].filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]||(S.profiles.get(a[0]).codename||'').localeCompare(S.profiles.get(b[0]).codename||''));
+  let top=rows.slice(0,10);const myIdx=rows.findIndex(r=>r[0]===S.uid);
+  if(myIdx>=10)top=top.concat([rows[myIdx]]);
+  return h('div',{class:'page'},
+    h('section',{class:'passport'},
+      h('div',{class:'pp-cover'},
+        h('div',{class:'stack',style:'gap:4px'},h('span',{class:'lbl'},'Campus passport · home campus '+me.campus),h('h2',null,me.codename)),
+        h('div',{style:'text-align:right'},h('div',{class:'pp-count'},got.length+'/5'),h('span',{class:'lbl'},'stamps'))),
+      h('div',{class:'stamps'},others.map(c=>{const on=stamps.has(c);const r=stamps.get(c);
+        return h('div',{class:'stamp '+(on?'on ':'off ')+ck(c),style:on?'--rot:'+((hash(S.uid+c)%17)-8)+'deg':null},
+          h('span',{class:'city'},c),h('small',null,on?(r?'Round '+r:'Stamped'):'Not yet'))})),
+      h('div',{style:'padding:0 22px 22px'},h('p',{class:got.length===5?'banner':'muted'},
+        got.length===5?'Full passport. You’ll get a shout-out at the next all hands.'
+        :plural(missing.length,'campus','campuses')+' to go: '+missing.join(', ')+'. Look for them in the deck.'))),
+    h('section',{class:'stack'},
+      h('div',{class:'row-between'},h('h3',null,'Most stamps'),h('span',{class:'hint'},'Codenames only')),
+      rows.length?h('div',{class:'panel',style:'padding:6px 18px'},h('ol',{class:'board'},top.map(([u,n])=>{const p=S.profiles.get(u);const i=rows.findIndex(r=>r[0]===u);
+        return h('li',{class:u===S.uid?'me':null},h('span',{class:'mono muted num'},String(i+1)),h('b',{style:'overflow-wrap:anywhere'},p.codename+(u===S.uid?' (you)':'')),pill(p.campus),
+          h('span',{class:'dots','aria-label':n+' of 5 stamps'},'●'.repeat(n)+'○'.repeat(Math.max(0,5-n))))})))
+      :h('p',{class:'muted'},'No stamps yet. They appear when chats are marked done.')));
+}
+
+/* ---------- map ---------- */
+function proj(c){const g=GEO[c];return [70+(g[0]+3.7)/24.71*500,50+(52.52-g[1])/12.1*250]}
+function allPairs(edges){const out=[];for(let i=0;i<CAMPUSES.length;i++)for(let j=i+1;j<CAMPUSES.length;j++){const a=CAMPUSES[i],b=CAMPUSES[j];out.push({a,b,n:(edges||{})[campusPair(a,b)]||0})}return out}
+function mapSvg(edges){
+  const pairs=allPairs(edges);const linked=pairs.filter(p=>p.n>0).length;
+  const g1=s('g'),g2=s('g'),g3=s('g');
+  for(const p of pairs){
+    const [x1,y1]=proj(p.a),[x2,y2]=proj(p.b);const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),bend=len*.12;
+    const cx=(x1+x2)/2-dy/len*bend,cy=(y1+y2)/2+dx/len*bend;
+    g1.append(s('path',{d:'M'+x1.toFixed(1)+' '+y1.toFixed(1)+' Q'+cx.toFixed(1)+' '+cy.toFixed(1)+' '+x2.toFixed(1)+' '+y2.toFixed(1),class:p.n?'m-edge':'m-none',style:p.n?'stroke-width:'+(1.6+Math.min(p.n,10)*0.9).toFixed(1)+'px':null},s('title',null,p.a+' and '+p.b+': '+plural(p.n,'chat'))));
+    if(p.n){const mx=(x1+2*cx+x2)/4,my=(y1+2*cy+y2)/4;g2.append(s('circle',{cx:mx.toFixed(1),cy:my.toFixed(1),r:11,class:'m-badge'}),s('text',{x:mx.toFixed(1),y:(my+3.8).toFixed(1),'text-anchor':'middle',class:'m-count'},String(p.n)))}
+  }
+  for(const c of CAMPUSES){const [x,y]=proj(c);const l=LABEL[c];
+    g3.append(s('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:9,class:'m-node',style:'fill:var(--c-'+c.toLowerCase()+')'}),
+      s('text',{x:(x+l[0]).toFixed(1),y:(y+l[1]).toFixed(1),'text-anchor':l[2],class:'m-label'},c))}
+  return s('svg',{viewBox:'0 0 640 345',class:'map',role:'img','aria-label':'Chats between campuses: '+linked+' of 15 campus pairs connected'},g1,g2,g3);
+}
+function mapView(){
+  const st=S.stats||{};const pairs=allPairs(st.edges);const quiet=pairs.filter(p=>!p.n);const linked=15-quiet.length;
+  return h('div',{class:'page'},
+    h('section',{class:'stack'},h('h2',null,linked?'Which campuses are talking':'No campus pairs connected yet'),
+      h('p',{class:'muted',style:'max-width:60ch'},'Each line is a pair of campuses. It thickens with every chat marked done. Dotted lines are pairs that haven’t had a chat yet, and P&O pairs those first.')),
+    h('div',{class:'kpis'},
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Chats done'),h('b',null,String(st.done||0))),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Campus pairs linked'),h('b',null,linked+'/15')),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Usefulness'),h('b',null,st.avgRating!=null?st.avgRating.toFixed(1)+'/5':'—')),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Members in the deck'),h('b',null,String(S.profiles.size)))),
+    h('div',{class:'map-wrap'},mapSvg(st.edges)),
+    quiet.length?h('section',{class:'stack'},h('h3',null,'Not talking yet'),h('div',{class:'chips'},quiet.map(p=>h('span',{class:'chip'},p.a+' ↔ '+p.b)))):null);
+}
+
+/* ---------- P&O ---------- */
+function allMatches(){return S.rounds.flatMap(r=>(r.matches||[]).map(m=>Object.assign({},m,{round:r.number,endsOn:r.endsOn})))}
+function feedbackFor(uid,id){const p=S.allPriv.get(uid);return p&&p.feedback?p.feedback[id]:null}
+function statusOf(m){let st='pending';for(const u of m.members){const f=feedbackFor(u,m.id);if(f){if(f.status==='done')st='done';else if(f.status==='missed'&&st!=='done')st='missed'}}return st}
+function buildStats(){
+  const edges={},pass={},ratings=[];let done=0,missed=0;const ms=allMatches();
+  for(const m of ms){const st=statusOf(m);
+    if(st==='done'){done++;const cs=m.campuses||[];
+      for(let i=0;i<m.members.length;i++)for(let j=i+1;j<m.members.length;j++){if(cs[i]&&cs[j]&&cs[i]!==cs[j]){const k=campusPair(cs[i],cs[j]);edges[k]=(edges[k]||0)+1}}
+      m.members.forEach((u,i)=>{const set=pass[u]||(pass[u]=new Set());cs.forEach((c,j)=>{if(j!==i&&c&&c!==cs[i])set.add(c)})})}
+    else if(st==='missed')missed++;
+    for(const u of m.members){const f=feedbackFor(u,m.id);if(f&&f.status==='done'&&f.rating)ratings.push(f.rating)}}
+  const passports={};for(const u of Object.keys(pass).sort())passports[u]=[...pass[u]].sort();
+  const avg=ratings.length?Math.round(ratings.reduce((a,b)=>a+b,0)/ratings.length*10)/10:null;
+  return {edges,passports,done,missed,matched:ms.length,rounds:S.rounds.length,avgRating:avg,ratings:ratings.length,members:S.profiles.size};
+}
+let statsT;
+function scheduleStats(){clearTimeout(statsT);statsT=setTimeout(publishStats,1500)}
+async function publishStats(){
+  const L=S.loaded;if(!(L.allPriv&&L.rounds&&L.profiles&&L.stats)||S.sending)return;
+  const next=buildStats();if(canon(next)===canon(S.stats||{}))return;
+  await save('public/stats',next);
+}
+function lastRoundOf(){const last={};for(const m of allMatches())for(const u of m.members)last[u]=Math.max(last[u]||0,m.round);return last}
+function realName(u){const p=S.allPriv.get(u);return (p&&p.name)||((S.profiles.get(u)||{}).codename)||'Removed member'}
+function generate(){
+  const round=(S.round?S.round.number:0)+1;
+  const profiles=[...S.profiles].filter(([,p])=>p.campus).map(([u,p])=>({uid:u,campus:p.campus,team:p.team,role:p.role,teach:p.teach||[],learn:p.learn||[],freq:p.freq||'monthly'}));
+  const picks={};for(const [u,pv] of S.allPriv)picks[u]=(pv.picks||[]).slice(0,3);
+  const history=allMatches().map(m=>({round:m.round,members:m.members}));
+  const res=makePairs({profiles,picks,history,round,edges:buildStats().edges,seed:hash('round-'+round)+S.shuffle*7919});
+  S.preview=Object.assign({round,endsOn:(S.preview&&S.preview.endsOn)||S.endsOn||todayISO(14)},res);
+  render();
+}
+function inboxEntry(rd,m,u){
+  const me=S.profiles.get(u)||{};
+  return {id:m.id,round:rd.number,endsOn:rd.endsOn,booker:m.members[0],mutual:m.reason==='mutual',youPicked:m.reason==='picked'&&m.members[0]===u,
+    partners:m.members.filter(v=>v!==u).map(v=>{const p=S.profiles.get(v)||{},pv=S.allPriv.get(v)||{};
+      return {uid:v,codename:p.codename||'',name:pv.name||'',email:pv.email||'',campus:p.campus||'',team:p.team||'',role:p.role||'',give:overlap(me.teach,p.learn),get:overlap(p.teach,me.learn)}})};
+}
+async function deliver(rd){
+  const total=rd.matches.reduce((t,m)=>t+m.members.length,0);
+  S.sending={label:'Sending round '+rd.number+' matches',done:0,total};render();
+  for(const m of rd.matches)for(const u of m.members){
+    const entry=inboxEntry(rd,m,u);let cur=null;
+    try{const snap=await S.db.doc('inbox/'+u).get();cur=snap.exists?snap.data():null}catch(e){toast(errMsg(e),'bad');S.sending=null;render();return false}
+    const list=(cur&&cur.matches)||[];
+    if(!list.some(x=>x.id===entry.id)){if(!await save('inbox/'+u,{matches:list.concat([entry])})){S.sending=null;render();return false}}
+    S.sending.done++;const bar=document.getElementById('prog');if(bar)bar.style.width=(S.sending.done/total*100).toFixed(1)+'%';
+  }
+  const ok=await save('public/round',{number:rd.number,endsOn:rd.endsOn,sentAt:new Date().toISOString()});
+  S.sending=null;render();if(S.isAdmin)scheduleStats();return ok;
+}
+async function sendRound(){
+  const p=S.preview;if(!p)return;const N=p.round;
+  if(S.rounds.some(r=>r.number===N)){toast('Round '+N+' already exists.','bad');return}
+  if(!p.endsOn){toast('Set the date the round ends.');return}
+  const rd={number:N,createdAt:new Date().toISOString(),endsOn:p.endsOn,
+    matches:p.matches.map((m,i)=>({id:'r'+N+'-'+(i+1),members:m.members.slice(),reason:m.reason,trio:!!m.trio,campuses:m.members.map(u=>(S.profiles.get(u)||{}).campus||'')}))};
+  S.sending={label:'Saving round '+N,done:0,total:1};render();
+  if(!await save('rounds/r'+N,rd)){S.sending=null;render();return}
+  const ok=await deliver(rd);
+  if(ok){S.preview=null;S.shuffle=0;toast('Round '+N+' is out. Members can see their match now.')}
+  render();
+}
+async function removeMember(u){
+  S.confirmDel=null;const name=realName(u);
+  const ok=(await remove('profiles/'+u))&&(await remove('private/'+u));
+  if(ok)toast(name+' was removed from the deck.');render();
+}
+function adminView(){
+  if(!S.loaded.allPriv||!S.loaded.rounds)return h('div',{class:'skeleton'},'Loading P&O data…');
+  const N=S.round?S.round.number:0;const maxSaved=S.rounds.length?S.rounds[S.rounds.length-1].number:0;
+  const last=lastRoundOf();const next=N+1;
+  const profs=[...S.profiles];
+  const eligible=profs.filter(([u,p])=>p.freq!=='paused'&&!(p.freq!=='every'&&last[u]===next-1)).length;
+  const pickers=profs.filter(([u])=>((S.allPriv.get(u)||{}).picks||[]).length).length;
+  const st=buildStats();
+  const ann=S.round?'Round '+S.round.number+' of Cross-Campus Coffee Chats is out. Open the app to see who you’re meeting, and have the chat by '+fmtDate(S.round.endsOn)+'. Picks for the next round are open now.':'';
+
+  let control;
+  if(S.sending){
+    control=h('div',{class:'panel stack'},h('h3',null,S.sending.label+'…'),
+      h('div',{class:'prog'},h('i',{id:'prog',style:'width:'+(S.sending.total?(S.sending.done/S.sending.total*100):0).toFixed(1)+'%'})),
+      h('p',{class:'hint'},'Keep this tab open until it finishes.'));
+  }else if(maxSaved>N){
+    const rd=S.rounds.find(r=>r.number===maxSaved);
+    control=h('div',{class:'banner warn stack'},h('b',null,'Round '+maxSaved+' was saved but not everyone got their match.'),
+      h('p',null,'This happens if the tab closed while sending. Finishing is safe: nobody gets a match twice.'),
+      h('div',null,h('button',{class:'btn primary',type:'button',onclick:()=>deliver(rd)},'Finish sending round '+maxSaved)));
+  }else if(!S.preview){
+    if(!S.endsOn)S.endsOn=todayISO(14);
+    control=h('div',{class:'panel stack',style:'gap:16px'},
+      h('div',{class:'stack',style:'gap:4px'},h('h2',null,'Round '+next),
+        h('p',{class:'muted'},plural(eligible,'member')+' will be paired. '+plural(pickers,'member')+' have picks in. The app suggests the pairs, you check them, then send.')),
+      h('div',{class:'row',style:'align-items:flex-end'},
+        h('div',{class:'field',style:'max-width:220px'},h('label',{for:'f-ends'},'Chats due by'),h('input',{id:'f-ends',type:'date',value:S.endsOn,onchange:e=>{S.endsOn=e.target.value}})),
+        h('button',{class:'btn primary',type:'button',disabled:eligible<2,onclick:generate},'Suggest pairs for round '+next)),
+      eligible<2?h('p',{class:'hint'},'At least two members from different campuses need to join first.'):null);
+  }else control=previewPanel();
+
+  return h('div',{class:'page'},
+    h('div',{class:'stack',style:'gap:6px'},h('p',{class:'lbl'},'P&O only'),h('h1',null,'Run the rounds'),
+      h('p',{class:'muted',style:'max-width:62ch'},N?'Round '+N+' runs until '+fmtDate(S.round.endsOn)+'. Start the next one whenever you’re ready, usually every two weeks.':'No rounds yet. When enough people have joined, suggest pairs for round 1.')),
+    control,
+    h('div',{class:'kpis'},
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Signed up'),h('b',null,String(S.profiles.size))),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'In next round'),h('b',null,String(eligible))),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Chats done'),h('b',null,st.done+'/'+st.matched)),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Usefulness'),h('b',null,st.avgRating!=null?st.avgRating.toFixed(1)+'/5':'—'))),
+    ann?h('div',{class:'panel stack'},h('div',{class:'row-between'},h('h3',null,'Announcement for the members group'),
+      h('button',{class:'btn small',type:'button',onclick:async e=>{const b=e.currentTarget;try{await navigator.clipboard.writeText(ann);toast('Announcement copied.')}catch(_){const r=document.createRange();r.selectNodeContents(b.closest('.panel').querySelector('p'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);toast('Selected. Press Ctrl+C or ⌘C to copy.')}}},'Copy')),h('p',{class:'muted'},ann)):null,
+    membersTable(last),
+    chatsTable());
+}
+function previewPanel(){
+  const p=S.preview;const counts={};p.matches.forEach(m=>{counts[m.reason]=(counts[m.reason]||0)+1});const trios=p.matches.filter(m=>m.trio).length;
+  return h('div',{class:'panel stack',style:'gap:16px'},
+    h('div',{class:'row-between'},h('h2',null,'Suggested pairs for round '+p.round),
+      h('div',{class:'row'},h('button',{class:'btn small',type:'button',onclick:()=>{S.shuffle++;generate()}},'Reshuffle'),h('button',{class:'btn small',type:'button',onclick:()=>{S.preview=null;S.shuffle=0;render()}},'Discard'))),
+    h('div',{class:'row'},Object.keys(REASON).filter(k=>counts[k]).map(k=>h('span',{class:'tag'+(k==='mutual'?' good':'')},REASON[k]+': '+counts[k])),trios?h('span',{class:'tag'},'Groups of three: '+trios):null),
+    p.unmatched.length?h('p',{class:'banner warn'},'No valid partner for: '+p.unmatched.map(realName).join(', ')+'. Everyone left is from the same campus or already met them. They’ll be first in line next round.'):null,
+    p.resting.length?h('p',{class:'hint'},plural(p.resting.length,'member')+' sitting this round out (paused, or once a month and matched last round).'):null,
+    p.matches.length?h('div',{class:'tbl-wrap'},h('table',{style:'min-width:620px'},
+      h('thead',null,h('tr',null,h('th',null,'#'),h('th',null,'People'),h('th',null,'Campuses'),h('th',null,'Why'))),
+      h('tbody',null,p.matches.map((m,i)=>h('tr',null,h('td',{class:'mono num muted'},String(i+1)),
+        h('td',null,m.members.map((u,j)=>h('div',null,realName(u)+(j===0?' (books)':''),h('small',null,(S.profiles.get(u)||{}).codename||'')))),
+        h('td',null,h('div',{class:'row'},m.members.map(u=>pill((S.profiles.get(u)||{}).campus)))),
+        h('td',null,h('div',{class:'row'},h('span',{class:'tag'+(m.reason==='mutual'?' good':'')},REASON[m.reason]),m.trio?h('span',{class:'tag'},'Group of three'):null))))))):null,
+    h('div',{class:'row',style:'align-items:flex-end'},
+      h('div',{class:'field',style:'max-width:220px'},h('label',{for:'f-ends2'},'Chats due by'),h('input',{id:'f-ends2',type:'date',value:p.endsOn,onchange:e=>{p.endsOn=e.target.value}})),
+      h('button',{class:'btn primary',type:'button',disabled:!p.matches.length,onclick:sendRound},'Send matches to '+plural(p.matches.reduce((t,m)=>t+m.members.length,0),'member'))),
+    h('p',{class:'hint'},'Sending reveals names to each pair and can’t be undone. Reshuffle gives a different set of pairs with the same rules.'));
+}
+function membersTable(last){
+  const rows=[...S.profiles].sort((a,b)=>(a[1].campus||'').localeCompare(b[1].campus||'')||realName(a[0]).localeCompare(realName(b[0])));
+  const pass=(S.stats&&S.stats.passports)||{};
+  return h('section',{class:'stack'},
+    h('div',{class:'row-between'},h('h3',null,'Members'),h('span',{class:'hint'},'Real names are visible to P&O only')),
+    rows.length?h('div',{class:'tbl-wrap'},h('table',null,
+      h('thead',null,h('tr',null,['Name','Campus','Team · role','How often','Picks','Stamps','Last round','Email',''].map(t=>h('th',null,t)))),
+      h('tbody',null,rows.map(([u,p])=>{const pv=S.allPriv.get(u)||{};
+        return h('tr',null,
+          h('td',null,pv.name||h('span',{class:'muted'},'No private info'),h('small',null,p.codename)),
+          h('td',null,pill(p.campus)),
+          h('td',null,p.team||'',h('small',null,p.role||'')),
+          h('td',null,(FREQ.find(f=>f[0]===p.freq)||FREQ[0])[1]),
+          h('td',{class:'num'},String((pv.picks||[]).length)),
+          h('td',{class:'num'},String((pass[u]||[]).length)+'/5'),
+          h('td',{class:'num mono'},last[u]?'R'+last[u]:'—'),
+          h('td',null,pv.email||''),
+          h('td',null,S.confirmDel===u?h('div',{class:'row'},h('button',{class:'btn small danger',type:'button',onclick:()=>removeMember(u)},'Remove'),h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmDel=null;render()}},'Keep'))
+            :h('button',{class:'btn small',type:'button','aria-label':'Remove '+(pv.name||p.codename),onclick:()=>{S.confirmDel=u;render()}},'Remove')))}))))
+    :h('p',{class:'muted'},'Nobody has joined yet. Share the link and ask the exec team to sign up first, so the deck isn’t empty.'));
+}
+function chatsTable(){
+  const ms=allMatches().sort((a,b)=>b.round-a.round);
+  return h('section',{class:'stack'},h('h3',null,'Chats'),
+    ms.length?h('div',{class:'tbl-wrap'},h('table',null,
+      h('thead',null,h('tr',null,['Round','People','Why','Status','Usefulness','Takeaways'].map(t=>h('th',null,t)))),
+      h('tbody',null,ms.map(m=>{const st=statusOf(m);const fbs=m.members.map(u=>feedbackFor(u,m.id)).filter(Boolean);
+        const rs=fbs.filter(f=>f.rating).map(f=>f.rating);const notes=m.members.map(u=>{const f=feedbackFor(u,m.id);return f&&f.note?realName(u).split(' ')[0]+': '+f.note:null}).filter(Boolean);
+        return h('tr',null,h('td',{class:'mono num'},'R'+m.round),
+          h('td',null,m.members.map((u,i)=>h('div',{class:'row',style:'gap:6px'},realName(u),pill((m.campuses||[])[i])))),
+          h('td',null,h('span',{class:'tag'+(m.reason==='mutual'?' good':'')},REASON[m.reason]||m.reason)),
+          h('td',null,h('span',{class:'status '+st},st==='done'?'Done':st==='missed'?'Didn’t happen':'Not marked')),
+          h('td',{class:'num'},rs.length?rs.join(' · '):'—'),
+          h('td',null,notes.length?notes.map(n=>h('div',null,n)):h('span',{class:'muted'},'—')))}))))
+    :h('p',{class:'muted'},'Chats show up here once you send round 1.'));
+}
+
+/* ---------- boot ---------- */
+function changed(){
+  if(S.phase==='loading'&&S.loaded.profiles&&S.loaded.priv)S.phase='ready';
+  scheduleRender();if(S.isAdmin)scheduleStats();
+}
+function subscribe(){
+  const onErr=name=>e=>{if(e&&e.code==='revoked')S.phase='nodb';else console.warn('Coffee Chats: '+name,e);scheduleRender()};
+  S.db.collection('profiles').limit(1000).onSnapshot(snap=>{const m=new Map();snap.docs.forEach(d=>{if(d.exists)m.set(d.id,d.data())});S.profiles=m;S.me=m.get(S.uid)||null;S.loaded.profiles=true;changed()},onErr('profiles'));
+  S.db.doc('private/'+S.uid).onSnapshot(d=>{S.priv=d.exists?d.data():null;S.optPicks=null;S.loaded.priv=true;changed()},onErr('private'));
+  S.db.doc('inbox/'+S.uid).onSnapshot(d=>{S.inbox=d.exists?d.data():null;S.loaded.inbox=true;changed()},onErr('inbox'));
+  S.db.doc('public/round').onSnapshot(d=>{S.round=d.exists?d.data():null;S.loaded.round=true;changed()},onErr('round'));
+  S.db.doc('public/stats').onSnapshot(d=>{S.stats=d.exists?d.data():null;S.loaded.stats=true;changed()},onErr('stats'));
+  if(S.isAdmin){
+    S.db.collection('private').limit(1000).onSnapshot(snap=>{const m=new Map();snap.docs.forEach(d=>{if(d.exists)m.set(d.id,d.data())});S.allPriv=m;S.loaded.allPriv=true;changed()},onErr('all private'));
+    S.db.collection('rounds').limit(1000).onSnapshot(snap=>{S.rounds=snap.docs.filter(d=>d.exists).map(d=>d.data()).sort((a,b)=>a.number-b.number);S.loaded.rounds=true;changed()},onErr('rounds'));
+  }
+}
+/* ---------- Supabase data layer ----------
+   Same calls the app makes everywhere else (doc().get/set/delete/onSnapshot, collection().onSnapshot),
+   backed by one table per collection. The database rules in supabase-setup.sql decide who sees what. */
+const TABLES={profiles:'profiles',private:'private',inbox:'inbox',rounds:'rounds',public:'public_docs'};
+function dbError(e){
+  if(!e)return {code:'unavailable',message:'Unknown error'};
+  const m=String(e.message||'');
+  if(e.code==='42501'||/row-level security|permission denied/i.test(m))return {code:'invalid_argument',message:m};
+  if(e.code==='PGRST301'||/JWT/i.test(m))return {code:'revoked',message:m};
+  return {code:'unavailable',message:m};
+}
+function makeDb(sb){
+  const subs=new Set();let channel=null;
+  const snap=(id,row)=>({id,exists:!!row,data:()=>row?row.data:undefined});
+  const refresh=t=>{for(const s of subs)if(!t||s.table===t)s.run()};
+  function listen(){
+    if(channel)return;
+    channel=sb.channel('coffee-chats').on('postgres_changes',{event:'*',schema:'public'},p=>refresh(p.table)).subscribe();
+  }
+  setInterval(()=>{if(document.visibilityState==='visible')refresh()},45000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+  function watch(table,fetch,next){
+    listen();let seq=0;
+    const s={table,run:async()=>{const my=++seq;try{const v=await fetch();if(my===seq)next(v)}catch(e){console.warn('Coffee Chats: '+table,e)}}};
+    subs.add(s);s.run();return ()=>subs.delete(s);
+  }
+  function doc(path){
+    const [name,id]=path.split('/');const table=TABLES[name];
+    if(!table||!id)throw new TypeError('Unknown document '+path);
+    const fetchOne=async()=>{const r=await sb.from(table).select('id,data').eq('id',id).maybeSingle();if(r.error)throw dbError(r.error);return snap(id,r.data)};
+    return {
+      get:fetchOne,
+      async set(body){const r=await sb.from(table).upsert({id,data:body});if(r.error)throw dbError(r.error);refresh(table)},
+      async delete(){const r=await sb.from(table).delete().eq('id',id);if(r.error)throw dbError(r.error);refresh(table)},
+      onSnapshot(next){return watch(table,fetchOne,next)}
+    };
+  }
+  function collection(name){
+    const table=TABLES[name];if(!table)throw new TypeError('Unknown collection '+name);
+    let lim=1000;
+    const fetchAll=async()=>{const r=await sb.from(table).select('id,data').limit(lim);if(r.error)throw dbError(r.error);const docs=(r.data||[]).map(row=>snap(row.id,row));return {docs,size:docs.length,empty:!docs.length}};
+    const q={limit(n){lim=n;return q},get:fetchAll,onSnapshot(next){return watch(table,fetchAll,next)}};
+    return q;
+  }
+  return {doc,collection};
+}
+
+/* ---------- sign in ---------- */
+let SB=null;
+const DOMAIN='@180dc.org';
+function loginView(){
+  const st=S.login||(S.login={email:'',sent:false,busy:false,err:''});
+  if(st.sent)return h('div',{class:'login panel stack',style:'gap:14px'},
+    h('h2',null,'Check your inbox'),
+    h('p',null,'We sent a sign-in link to ',h('b',null,st.email),'. Open it on any device. It works once and expires after an hour.'),
+    h('p',{class:'hint'},'Nothing after a few minutes? Check spam, or send a new link.'),
+    h('div',{class:'row'},h('button',{class:'btn',type:'button',onclick:()=>{st.sent=false;st.err='';render()}},'Send a new link')));
+  return h('div',{class:'login stack',style:'gap:18px'},
+    h('p',{class:'lbl'},'180DC ESCP · People & Organisation'),
+    h('h1',null,'Have a coffee with someone from another campus.'),
+    h('p',{class:'muted'},'Blind profiles, one chat a round, a passport stamp for every campus you meet. Sign in with your 180DC email to join.'),
+    h('form',{class:'panel form',novalidate:true,onsubmit:e=>{e.preventDefault();sendLink()}},
+      h('div',{class:'field'},h('label',{for:'f-login'},'Your 180DC email'),
+        h('input',{id:'f-login',type:'email',autocomplete:'email',placeholder:'firstname.lastname'+DOMAIN,value:st.email,oninput:e=>{st.email=e.target.value}}),
+        h('p',{class:'hint'},'Only '+DOMAIN+' addresses can sign in. We’ll email you a link, no password needed.')),
+      st.err?h('p',{class:'err',role:'alert'},st.err):null,
+      h('div',null,h('button',{class:'btn primary',type:'submit',disabled:st.busy},st.busy?'Sending…':'Email me a sign-in link'))));
+}
+async function sendLink(){
+  const st=S.login;const email=(st.email||'').trim().toLowerCase();st.email=email;
+  if(!email.endsWith(DOMAIN)||!/^[^\s@]+@[^\s@]+$/.test(email)){st.err='Use your '+DOMAIN+' email address.';render();return}
+  st.busy=true;st.err='';render();
+  const r=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  st.busy=false;
+  if(r.error){const m=String(r.error.message||'');
+    st.err=/database error|saving new user|180dc/i.test(m)?'Only '+DOMAIN+' addresses can sign in.'
+      :/rate limit|too many/i.test(m)?'Too many sign-in emails just now. Wait a few minutes and try again.'
+      :'We couldn’t send the link ('+m+'). Try again in a minute.';}
+  else st.sent=true;
+  render();
+}
+async function start(session){
+  if(S.uid||!session)return;
+  const email=String(session.user.email||'').toLowerCase();
+  if(!email.endsWith(DOMAIN)){await SB.auth.signOut();S.login={email:'',sent:false,busy:false,err:'Only '+DOMAIN+' addresses can use Coffee Chats.'};S.phase='login';render();return}
+  S.uid=session.user.id;S.email=email;S.db=makeDb(SB);S.canWrite=true;
+  const a=await SB.rpc('is_admin');S.isAdmin=!a.error&&a.data===true;
+  const ae=document.getElementById('acct-email');ae.textContent=email;ae.hidden=false;
+  document.getElementById('signout').hidden=false;
+  S.phase='loading';S.revealed=loadRevealed();render();
+  subscribe();
+}
+async function boot(){
+  render();
+  const cfg=window.CC_CONFIG||{};
+  if(!window.supabase||!cfg.supabaseUrl||!cfg.supabaseKey||/YOUR-/.test(cfg.supabaseUrl+cfg.supabaseKey)){S.phase='config';render();return}
+  SB=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{flowType:'implicit',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  document.getElementById('signout').addEventListener('click',async()=>{await SB.auth.signOut();location.replace(location.pathname)});
+  SB.auth.onAuthStateChange((event,session)=>{if(session&&!S.uid)setTimeout(()=>start(session),0)});
+  const r=await SB.auth.getSession();
+  if(r.data&&r.data.session)await start(r.data.session);
+  else if(!S.uid){S.phase='login';render()}
+}
+boot();
+</script>
+</body>
+</html>
