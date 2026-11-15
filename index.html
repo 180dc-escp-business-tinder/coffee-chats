@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Cross-Campus Coffee Chats</title>
-<meta name="description" content="Blind cross-campus coffee chats for 180DC ESCP members.">
+<title>Business Tinder</title>
+<meta name="description" content="Blind cross-campus matching for 180DC ESCP members: swipe, match, have a coffee chat.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121621'/%3E%3Cpath d='M9 13h12v5a6 6 0 0 1-12 0z' fill='%23F3F4F7'/%3E%3Cpath d='M21 14h1.5a2.5 2.5 0 0 1 0 5H21' fill='none' stroke='%23F3F4F7' stroke-width='1.8'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -224,7 +224,7 @@ td small{display:block;color:var(--muted);font-size:12px}
 <div class="wrap">
   <header class="top">
     <div class="top-row">
-      <div class="brand"><b>Coffee Chats</b><span class="lbl">180DC ESCP · cross-campus</span></div>
+      <div class="brand"><b>Business Tinder</b><span class="lbl">180DC ESCP · cross-campus</span></div>
       <div class="acct"><span class="round-chip" id="round" hidden></span><span class="hint" id="acct-email" hidden></span><button class="btn small" id="signout" type="button" hidden>Sign out</button></div>
     </div>
     <nav class="tabs" id="tabs" aria-label="Sections"></nav>
@@ -828,7 +828,7 @@ function adminView(){
   const eligible=profs.filter(([u,p])=>p.freq!=='paused'&&!(p.freq!=='every'&&last[u]===next-1)).length;
   const pickers=profs.filter(([u])=>((S.allPriv.get(u)||{}).picks||[]).length).length;
   const st=buildStats();
-  const ann=S.round?'Round '+S.round.number+' of Cross-Campus Coffee Chats is out. Open the app to see who you’re meeting, and have the chat by '+fmtDate(S.round.endsOn)+'. Picks for the next round are open now.':'';
+  const ann=S.round?'Round '+S.round.number+' of Business Tinder is out. Open the app to see who you’re meeting, and have the chat by '+fmtDate(S.round.endsOn)+'. Picks for the next round are open now.':'';
 
   let control;
   if(S.sending){
@@ -1022,7 +1022,7 @@ async function sendLink(){
 async function start(session){
   if(S.uid||!session)return;
   const email=String(session.user.email||'').toLowerCase();
-  if(!email.endsWith(DOMAIN)){await SB.auth.signOut();S.login={email:'',sent:false,busy:false,err:'Only '+DOMAIN+' addresses can use Coffee Chats.'};S.phase='login';render();return}
+  if(!email.endsWith(DOMAIN)){await SB.auth.signOut();S.login={email:'',sent:false,busy:false,err:'Only '+DOMAIN+' addresses can use Business Tinder.'};S.phase='login';render();return}
   S.uid=session.user.id;S.email=email;S.db=makeDb(SB);S.canWrite=true;
   const a=await SB.rpc('is_admin');S.isAdmin=!a.error&&a.data===true;
   const ae=document.getElementById('acct-email');ae.textContent=email;ae.hidden=false;
