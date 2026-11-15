@@ -1,4 +1,4 @@
-# Coffee Chats
+# Business Tinder
 
 Blind cross-campus coffee chats for 180DC ESCP. Members sign in with their @180dc.org email, swipe through anonymous profiles, get matched every round, and collect passport stamps. P&O runs the rounds from the P&O tab.
 
@@ -70,7 +70,8 @@ This keeps everyone's profiles but resets the rounds, matches and stats.
 ## Who can do what
 
 - **Only @180dc.org emails** can sign in. This is checked in three places: the login page, the database refuses to create accounts for any other address, and every table checks the domain again.
-- **Members** see everyone's blind card (codename, campus, team, role, skills, fun fact). They see a real name and email only for their own matches.
+- **Members** see everyone's blind card (codename, campus, skills, fun fact). Team and role are kept off the card so nobody can be identified; members see a real name, email, team and role only for their own matches.
+- **Who meets whom:** always someone new, from another campus first. When nobody new is left on other campuses, someone from the same campus on a different team. The deck follows the same order.
 - **P&O admins** (the `admins` table) see real names, picks and feedback, and run the rounds.
 
 To add an admin later, run this in the SQL Editor:
