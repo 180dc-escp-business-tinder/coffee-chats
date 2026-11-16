@@ -1124,23 +1124,43 @@ function loginView(){
   if(st.sent)return h('div',{class:'login panel stack',style:'gap:14px'},
     h('h2',null,'Check your inbox'),
     h('p',null,'We sent a sign-in link to ',h('b',null,st.email),'. Open it on any device. It works once and expires after an hour.'),
-    h('p',{class:'hint'},'Nothing after a few minutes? Check spam, or send a new link.'),
-    h('div',{class:'row'},h('button',{class:'btn',type:'button',onclick:()=>{st.sent=false;st.err='';render()}},'Send a new link')));
+    h('p',{class:'hint'},'Nothing after a few minutes? Check spam, or skip email and continue with Google.'),
+    h('div',{class:'row'},h('button',{class:'btn primary',type:'button',onclick:googleSignIn},'Continue with Google'),
+      h('button',{class:'btn',type:'button',onclick:()=>{st.sent=false;st.err='';render()}},'Send a new link')));
   return h('div',{class:'login stack',style:'gap:18px'},
     h('p',{class:'lbl'},'180DC ESCP · People & Organisation'),
     h('h1',null,'Have a coffee with someone from another campus.'),
-    h('p',{class:'muted'},'Blind profiles, one chat a round, a passport stamp for every campus you meet. Sign in with your 180DC email to join.'),
+    h('p',{class:'muted'},'Blind profiles, one chat a round, a passport stamp for every campus you meet. Sign in with your 180DC account to join.'),
+    h('div',{class:'panel stack',style:'gap:10px'},
+      h('button',{class:'btn primary',type:'button',disabled:st.busy,onclick:googleSignIn},st.busy==='google'?'Opening Google…':'Continue with Google'),
+      h('p',{class:'hint'},'Choose your '+DOMAIN+' Google account. No email or password needed.'),
+      st.err&&st.errFrom==='google'?h('p',{class:'err',role:'alert'},st.err):null),
+    h('p',{class:'hint',style:'text-align:center'},'or get a sign-in link by email'),
     h('form',{class:'panel form',novalidate:true,onsubmit:e=>{e.preventDefault();sendLink()}},
       h('div',{class:'field'},h('label',{for:'f-login'},'Your 180DC email'),
         h('input',{id:'f-login',type:'email',autocomplete:'email',placeholder:'firstname.lastname'+DOMAIN,value:st.email,oninput:e=>{st.email=e.target.value}}),
         h('p',{class:'hint'},'Only '+DOMAIN+' addresses can sign in. We’ll email you a link, no password needed.')),
-      st.err?h('p',{class:'err',role:'alert'},st.err):null,
-      h('div',null,h('button',{class:'btn primary',type:'submit',disabled:st.busy},st.busy?'Sending…':'Email me a sign-in link'))));
+      st.err&&st.errFrom!=='google'?h('p',{class:'err',role:'alert'},st.err):null,
+      h('div',null,h('button',{class:'btn',type:'submit',disabled:st.busy},st.busy==='email'?'Sending…':'Email me a sign-in link'))));
+}
+async function googleSignIn(){
+  const st=S.login||(S.login={email:'',sent:false,busy:false,err:''});
+  st.err='';st.errFrom='';st.busy='google';render();
+  const r=await SB.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{hd:'180dc.org',prompt:'select_account'}}});
+  if(r.error){st.busy=false;st.sent=false;st.errFrom='google';st.err='Google sign-in isn’t available right now. Use the email link instead.';render()}
+}
+// Coming back from Google with an error (for example a non-180DC account): show it on the login page.
+function authErrorFromUrl(){
+  const q=new URLSearchParams(location.search),hh=new URLSearchParams(location.hash.replace(/^#/,''));
+  const d=hh.get('error_description')||q.get('error_description');if(!d&&!hh.get('error')&&!q.get('error'))return null;
+  history.replaceState(null,'',location.pathname);
+  return /database error|saving new user|180dc/i.test(d||'')?'Only '+DOMAIN+' accounts can sign in. Choose your 180DC Google account.'
+    :'Sign-in didn’t work ('+(d||'unknown error')+'). Try again, or use the email link.';
 }
 async function sendLink(){
   const st=S.login;const email=(st.email||'').trim().toLowerCase();st.email=email;
   if(!email.endsWith(DOMAIN)||!/^[^\s@]+@[^\s@]+$/.test(email)){st.err='Use your '+DOMAIN+' email address.';render();return}
-  st.busy=true;st.err='';render();
+  st.busy='email';st.err='';st.errFrom='';render();
   const r=await SB.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
   st.busy=false;
   if(r.error){const m=String(r.error.message||'');
@@ -1153,7 +1173,7 @@ async function sendLink(){
 async function start(session){
   if(S.uid||!session)return;
   const email=String(session.user.email||'').toLowerCase();
-  if(!email.endsWith(DOMAIN)){await SB.auth.signOut();S.login={email:'',sent:false,busy:false,err:'Only '+DOMAIN+' addresses can use Business Tinder.'};S.phase='login';render();return}
+  if(!email.endsWith(DOMAIN)){await SB.auth.signOut();S.login={email:'',sent:false,busy:false,err:'Only '+DOMAIN+' accounts can use Business Tinder. Choose your 180DC Google account.',errFrom:'google'};S.phase='login';render();return}
   S.uid=session.user.id;S.email=email;S.db=makeDb(SB);S.canWrite=true;
   const a=await SB.rpc('is_admin');S.isAdmin=!a.error&&a.data===true;
   const ae=document.getElementById('acct-email');ae.textContent=email;ae.hidden=false;
@@ -1165,6 +1185,8 @@ async function boot(){
   render();
   const cfg=window.CC_CONFIG||{};
   if(!window.supabase||!cfg.supabaseUrl||!cfg.supabaseKey||/YOUR-/.test(cfg.supabaseUrl+cfg.supabaseKey)){S.phase='config';render();return}
+  const urlErr=authErrorFromUrl();
+  if(urlErr)S.login={email:'',sent:false,busy:false,err:urlErr,errFrom:'google'};
   SB=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{flowType:'implicit',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   document.getElementById('signout').addEventListener('click',async()=>{await SB.auth.signOut();location.replace(location.pathname)});
   SB.auth.onAuthStateChange((event,session)=>{if(session&&!S.uid)setTimeout(()=>start(session),0)});
