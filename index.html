@@ -312,6 +312,11 @@ function makePairs(input){
   const homeReady=u=>{const c=campusOf(u);return ALL.includes(c)&&!seen.get(u).has(c)&&ALL.every(x=>x===c||seen.get(u).has(x))};
   const gain=(a,b)=>(needs(a,campusOf(b))?1:0)+(needs(b,campusOf(a))?1:0)+(campusOf(b)==='Other'&&!seen.get(a).has('Other')?.5:0)+(campusOf(a)==='Other'&&!seen.get(b).has('Other')?.5:0);
   const homeTime=(a,b)=>teamMix(a,b)&&(homeReady(a)||homeReady(b));
+  // Fair turns: how many times someone has had a chat with only their own campus. When there are more
+  // people on one campus than places with other campuses, those who've had more such chats go first.
+  const ownOnly=new Map(profiles.map(p=>[p.uid,0]));
+  for(const m of history)m.members.forEach((u,i)=>{if(!ownOnly.has(u))return;const cs=m.members.map((v,j)=>(m.campuses&&m.campuses[j])||(byId.get(v)||{}).campus);
+    if(cs[i]&&cs[i]!=='Other'&&cs.every((c,j)=>j===i||c===cs[i]))ownOnly.set(u,ownOnly.get(u)+1)});
   const lvl1=(a,b)=>(cross(a,b)&&!sameTeam(a,b))||homeTime(a,b), lvl2=(a,b)=>cross(a,b)&&sameTeam(a,b);
   const level=(a,b)=>lvl1(a,b)?1:lvl2(a,b)?2:teamMix(a,b)?3:9;
   const pk=u=>(picks[u]||[]).filter(v=>E.has(v)&&v!==u);
@@ -335,7 +340,9 @@ function makePairs(input){
   const greedy=(pool,rel,reasonOf)=>{let rest=pool.slice();const stuck=[];
     while(rest.length>1){
       const opts=new Map(rest.map(u=>[u,rest.filter(v=>rel(u,v))]));
-      rest.sort((x,y)=>opts.get(x).length-opts.get(y).length||order(x,y));
+      // Anyone down to 0 or 1 option goes first, so nobody gets stranded. Then fair turns, then the
+      // fewest options, then whoever has waited longest.
+      rest.sort((x,y)=>(opts.get(x).length>1)-(opts.get(y).length>1)||ownOnly.get(y)-ownOnly.get(x)||opts.get(x).length-opts.get(y).length||order(x,y));
       const a=rest[0],cand=opts.get(a);
       if(!cand.length){stuck.push(a);rest=rest.slice(1);continue}
       let best=cand[0],bs=-Infinity;for(const b of cand){const sc=score(a,b);if(sc>bs){bs=sc;best=b}}
