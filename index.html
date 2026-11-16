@@ -248,7 +248,7 @@ const TEAMS=['Consulting','P&O','Operations','Finance','Business Development','M
 const ROLES=['Consultant','Project Leader','Associate Director','Director','Board'];
 const SKILLS=['Excel & modelling','Slides & storylining','Market research','Client communication','Case interviews','Public speaking','Project management','Data & coding','Design','Career advice'];
 const FREQ=[['monthly','Once a month'],['every','Every round'],['paused','Pause for now']];
-const REASON={mutual:'Picked each other',picked:'Picked',swap:'Skill swap',newlink:'New campus link',mix:'Cross-campus',team:'Same campus, other team'};
+const REASON={mutual:'Picked each other',picked:'Picked',swap:'Skill swap',newlink:'New campus link',mix:'Cross-campus',team:'Same campus, other team',manual:'Set by P&O'};
 const STARTERS=['Ask why they chose their codename.','Swap the best project you have each worked on at 180DC.','Ask what their campus does better than yours.','Trade one thing you wish you had known in your first month.'];
 const GEO={London:[-0.13,51.51],Paris:[2.35,48.86],Madrid:[-3.7,40.42],Turin:[7.69,45.07],Berlin:[13.4,52.52],Warsaw:[21.01,52.23]};
 const LABEL={London:[-15,-12,'end'],Paris:[-15,20,'end'],Madrid:[0,30,'middle'],Turin:[0,30,'middle'],Berlin:[0,-18,'middle'],Warsaw:[0,-18,'middle']};
@@ -262,14 +262,17 @@ function mulberry(seed){let t=seed>>>0;return function(){t=(t+0x6D2B79F5)>>>0;le
 // only when that runs out, someone from the same campus on a different team.
 // Order: mutual picks, then one-way picks (longest wait first), then everyone else by skill swap
 // and campus pairs that haven't talked yet. Anyone left over joins a pair as a group of three.
+// Pairs P&O set by hand ('fixed') go in first, exactly as given, and everyone else is paired around them.
 function makePairs(input){
   const {profiles,picks,history,round,edges,seed}=input;
   const rand=mulberry(seed||1);
   const byId=new Map(profiles.map(p=>[p.uid,p]));
   const met=new Set(),last={};
   for(const m of history){const ms=m.members;for(let i=0;i<ms.length;i++){last[ms[i]]=Math.max(last[ms[i]]||0,m.round);for(let j=i+1;j<ms.length;j++)met.add(pairKey(ms[i],ms[j]))}}
+  const fixed=[],F=new Set();
+  for(const g0 of input.fixed||[]){const g=[...new Set(g0)].filter(u=>byId.has(u)&&!F.has(u));if(g.length>=2){g.forEach(u=>F.add(u));fixed.push(g)}}
   const eligible=[],resting=[];
-  for(const p of profiles){if(p.freq==='paused'||(p.freq!=='every'&&last[p.uid]===round-1))resting.push(p.uid);else eligible.push(p.uid)}
+  for(const p of profiles){if(F.has(p.uid))continue;if(p.freq==='paused'||(p.freq!=='every'&&last[p.uid]===round-1))resting.push(p.uid);else eligible.push(p.uid)}
   const E=new Set(eligible);
   const jit=new Map(eligible.map(u=>[u,rand()]));
   const wait=u=>round-(last[u]||0);
@@ -283,6 +286,7 @@ function makePairs(input){
   const pk=u=>(picks[u]||[]).filter(v=>E.has(v)&&v!==u);
   const taken=new Set(),matches=[];
   const add=(members,reason)=>{members.forEach(u=>taken.add(u));matches.push({members,reason})};
+  for(const g of fixed)add(g.slice(),'manual');
   const swapCount=(a,b)=>{const A=byId.get(a),B=byId.get(b);return overlap(A.teach,B.learn).length+overlap(B.teach,A.learn).length};
   const linkCount=(a,b)=>(edges||{})[campusPair(byId.get(a).campus,byId.get(b).campus)]||0;
   const score=(a,b)=>{const A=byId.get(a),B=byId.get(b);return Math.min(swapCount(a,b),4)*3+(A.team!==B.team?2:0)+(A.role!==B.role?1:0)+(!home(a,b)?4/(1+linkCount(a,b)):0)+rand()*0.5};
@@ -314,7 +318,7 @@ function makePairs(input){
   for(const u of left){
     let best=null,bs=-Infinity;
     for(const rel of [cross,ok]){
-      for(const m of matches){if(m.members.length!==2||!m.members.every(x=>rel(u,x)))continue;const sc=m.members.reduce((t,x)=>t+score(u,x),0);if(sc>bs){bs=sc;best=m}}
+      for(const m of matches){if(m.members.length!==2||m.reason==='manual'||!m.members.every(x=>rel(u,x)))continue;const sc=m.members.reduce((t,x)=>t+score(u,x),0);if(sc>bs){bs=sc;best=m}}
       if(best)break}
     if(best){best.members.push(u);best.trio=true;taken.add(u)}else unmatched.push(u);
   }
@@ -325,7 +329,8 @@ function makePairs(input){
 const S={phase:'loading',tab:'deck',db:null,user:null,uid:null,isAdmin:false,canWrite:null,
   profiles:new Map(),me:null,priv:null,inbox:null,round:null,stats:null,allPriv:new Map(),rounds:[],loaded:{},
   skipOrder:[],optPicks:null,form:null,formErr:'',saving:false,fb:null,preview:null,shuffle:0,endsOn:null,
-  sending:null,confirmDel:null,revealed:new Set(),pending:false,dragging:false,otherTeams:new Set()};
+  sending:null,confirmDel:null,revealed:new Set(),pending:false,dragging:false,otherTeams:new Set(),
+  manual:[],manualPick:null,confirmUndo:false};
 const $view=document.getElementById('view'),$tabs=document.getElementById('tabs'),$round=document.getElementById('round');
 
 /* ---------- helpers ---------- */
@@ -651,6 +656,7 @@ function matchView(){
   else{
     const lastRound=myMatches().length?myMatches()[0].round:0;
     const why=S.me.freq==='paused'?'You’re paused. Switch back on in Profile to be matched next round.'
+      :((S.round.unmatched||[]).includes(S.uid))?'We couldn’t find someone new for you this time: everyone free was on your campus and team, or you’d already met them. You’re first in line next round.'
       :(S.me.freq!=='every'&&lastRound===S.round.number-1)?'You’re on once a month, so you sit out every other round. You’re in the next one.'
       :'You joined after this round’s pairs were made. You’ll be in the next one.';
     main=h('div',{class:'panel stack',style:'max-width:560px'},h('h2',null,'You’re not in round '+S.round.number+'.'),h('p',{class:'muted'},why));
@@ -790,7 +796,7 @@ function mapView(){
 }
 
 /* ---------- P&O ---------- */
-function allMatches(){return S.rounds.flatMap(r=>(r.matches||[]).map(m=>Object.assign({},m,{round:r.number,endsOn:r.endsOn})))}
+function allMatches(){return S.rounds.filter(r=>!r.undoing).flatMap(r=>(r.matches||[]).map(m=>Object.assign({},m,{round:r.number,endsOn:r.endsOn})))}
 function feedbackFor(uid,id){const p=S.allPriv.get(uid);return p&&p.feedback?p.feedback[id]:null}
 function statusOf(m){let st='pending';for(const u of m.members){const f=feedbackFor(u,m.id);if(f){if(f.status==='done')st='done';else if(f.status==='missed'&&st!=='done')st='missed'}}return st}
 function buildStats(){
@@ -820,7 +826,8 @@ function generate(){
     return {uid:u,campus:p.campus,team:pv.team||p.team||'',role:pv.role||p.role||'',teach:p.teach||[],learn:p.learn||[],freq:p.freq||'monthly'}});
   const picks={};for(const [u,pv] of S.allPriv)picks[u]=(pv.picks||[]).slice(0,3);
   const history=allMatches().map(m=>({round:m.round,members:m.members}));
-  const res=makePairs({profiles,picks,history,round,edges:buildStats().edges,seed:hash('round-'+round)+S.shuffle*7919});
+  S.manual=S.manual.filter(g=>g.every(u=>S.profiles.has(u)));
+  const res=makePairs({profiles,picks,history,round,edges:buildStats().edges,seed:hash('round-'+round)+S.shuffle*7919,fixed:S.manual});
   S.preview=Object.assign({round,endsOn:(S.preview&&S.preview.endsOn)||S.endsOn||todayISO(14)},res);
   render();
 }
@@ -840,20 +847,83 @@ async function deliver(rd){
     if(!list.some(x=>x.id===entry.id)){if(!await save('inbox/'+u,{matches:list.concat([entry])})){S.sending=null;render();return false}}
     S.sending.done++;const bar=document.getElementById('prog');if(bar)bar.style.width=(S.sending.done/total*100).toFixed(1)+'%';
   }
-  const ok=await save('public/round',{number:rd.number,endsOn:rd.endsOn,sentAt:new Date().toISOString()});
+  const ok=await save('public/round',{number:rd.number,endsOn:rd.endsOn,sentAt:new Date().toISOString(),unmatched:rd.unmatched||[]});
   S.sending=null;render();if(S.isAdmin)scheduleStats();return ok;
 }
 async function sendRound(){
   const p=S.preview;if(!p)return;const N=p.round;
   if(S.rounds.some(r=>r.number===N)){toast('Round '+N+' already exists.','bad');return}
   if(!p.endsOn){toast('Set the date the round ends.');return}
-  const rd={number:N,createdAt:new Date().toISOString(),endsOn:p.endsOn,
-    matches:p.matches.map((m,i)=>({id:'r'+N+'-'+(i+1),members:m.members.slice(),reason:m.reason,trio:!!m.trio,campuses:m.members.map(u=>(S.profiles.get(u)||{}).campus||'')}))};
+  if(N!==(S.round?S.round.number:0)+1){S.preview=null;render();toast('Another round was sent while you were checking. Suggest pairs again.','bad');return}
+  const seen=new Set();
+  for(const m of p.matches)for(const u of m.members){if(seen.has(u)){toast(realName(u)+' is in two pairs. Press Reshuffle and check again.','bad');return}seen.add(u)}
+  const tag=Math.random().toString(36).slice(2,7);
+  const rd={number:N,createdAt:new Date().toISOString(),endsOn:p.endsOn,unmatched:p.unmatched.slice(),
+    matches:p.matches.map((m,i)=>({id:'r'+N+'-'+(i+1)+'-'+tag,members:m.members.slice(),reason:m.reason,trio:!!m.trio,campuses:m.members.map(u=>(S.profiles.get(u)||{}).campus||'')}))};
   S.sending={label:'Saving round '+N,done:0,total:1};render();
-  if(!await save('rounds/r'+N,rd)){S.sending=null;render();return}
+  try{await S.db.doc('rounds/r'+N).create(rd)}
+  catch(e){S.sending=null;S.preview=null;render();toast(e&&e.code==='already_exists'?'Round '+N+' was just sent by another P&O member, so yours wasn’t sent. Nobody got two matches.':errMsg(e),'bad');return}
   const ok=await deliver(rd);
-  if(ok){S.preview=null;S.shuffle=0;toast('Round '+N+' is out. Members can see their match now.')}
+  if(ok){S.preview=null;S.shuffle=0;S.manual=[];toast('Round '+N+' is out. Members can see their match now.')}
   render();
+}
+function firstName(u){return realName(u).split(' ')[0]}
+function metIn(a,b){let r=0;for(const m of allMatches())if(m.members.includes(a)&&m.members.includes(b))r=Math.max(r,m.round);return r}
+function pairWarnings(g){
+  const out=[];
+  for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length;j++){const a=g[i],b=g[j];const r=metIn(a,b);
+    if(r)out.push(firstName(a)+' and '+firstName(b)+' already met in round '+r);
+    const A=S.profiles.get(a)||{},B=S.profiles.get(b)||{},ta=(S.allPriv.get(a)||{}).team,tb=(S.allPriv.get(b)||{}).team;
+    if(sameCampus(A.campus,B.campus)&&ta&&ta===tb)out.push(firstName(a)+' and '+firstName(b)+' are on the same campus and team')}
+  for(const u of g)if((S.profiles.get(u)||{}).freq==='paused')out.push(firstName(u)+' is paused');
+  return out;
+}
+function manualEditor(){
+  const used=new Set(S.manual.flat());const pick=S.manualPick||(S.manualPick={a:'',b:''});
+  const opts=[...S.profiles].filter(([u,p])=>p.campus&&!used.has(u)).map(([u,p])=>[u,realName(u)+' · '+p.campus]).sort((x,y)=>x[1].localeCompare(y[1]));
+  const sel=(k,label)=>h('div',{class:'field',style:'flex:1;min-width:180px'},h('label',{for:'f-m'+k},label),
+    h('select',{id:'f-m'+k,onchange:e=>{pick[k]=e.target.value}},h('option',{value:''},'Choose…'),opts.map(([u,l])=>h('option',{value:u,selected:pick[k]===u},l))));
+  return h('div',{class:'stack',style:'gap:10px;border-top:1px solid var(--line);padding-top:14px'},
+    h('h3',null,'Pair people yourself'),
+    h('p',{class:'hint'},'Optional. Pairs you add here are kept exactly as you set them, and the app pairs everyone else around them. Use it for someone who wasn’t matched, or a chat you want to happen.'),
+    S.manual.length?h('ul',{class:'mini'},S.manual.map((g,i)=>{const w=pairWarnings(g);
+      return h('li',null,h('div',{class:'row'},h('b',null,g.map(realName).join(' + ')),
+        h('button',{class:'btn small',type:'button',onclick:()=>{S.manual.splice(i,1);if(S.preview)generate();else render()}},'Remove')),
+        w.length?h('p',{class:'err'},'Check: '+w.join('; ')+'.'):null)})):null,
+    h('div',{class:'row',style:'align-items:flex-end'},sel('a','Person'),sel('b','Meets'),h('button',{class:'btn',type:'button',onclick:addManual},'Add pair')));
+}
+function addManual(){
+  const {a,b}=S.manualPick||{};
+  if(!a||!b){toast('Choose two people.');return}
+  if(a===b){toast('Choose two different people.');return}
+  S.manual.push([a,b]);S.manualPick={a:'',b:''};
+  const w=pairWarnings([a,b]);if(w.length)toast('Pair added, but check: '+w.join('; ')+'.','bad');
+  if(S.preview)generate();else render();
+}
+async function undoRound(){
+  S.confirmUndo=false;
+  const N=S.round&&S.round.number;const rd=S.rounds.find(r=>r.number===N);if(!rd){render();return}
+  const marked=Object.assign({},rd,{undoing:true});
+  if(!rd.undoing&&!await save('rounds/r'+N,marked)){render();return}
+  await finishUndo(marked);
+}
+// Safe to run again if the tab closes halfway: each step only removes what is still there.
+async function finishUndo(rd){
+  const N=rd.number;const ids=new Set((rd.matches||[]).map(m=>m.id));const people=[...new Set((rd.matches||[]).flatMap(m=>m.members))];
+  S.sending={label:'Undoing round '+N,done:0,total:people.length+1};render();
+  for(const u of people){
+    let cur=null;
+    try{const snap=await S.db.doc('inbox/'+u).get();cur=snap.exists?snap.data():null}catch(e){toast(errMsg(e),'bad');S.sending=null;render();return}
+    const list=(cur&&cur.matches)||[];const keep=list.filter(x=>!ids.has(x.id));
+    if(keep.length!==list.length&&!await save('inbox/'+u,{matches:keep})){S.sending=null;render();return}
+    S.sending.done++;const bar=document.getElementById('prog');if(bar)bar.style.width=(S.sending.done/S.sending.total*100).toFixed(1)+'%';
+  }
+  const prev=S.rounds.filter(r=>r.number<N&&!r.undoing).sort((a,b)=>b.number-a.number)[0];
+  const ok=prev?await save('public/round',{number:prev.number,endsOn:prev.endsOn,sentAt:prev.createdAt,unmatched:prev.unmatched||[]}):await remove('public/round');
+  if(!ok){S.sending=null;render();return}
+  const gone=await remove('rounds/r'+N);
+  S.sending=null;S.preview=null;render();
+  if(gone){toast('Round '+N+' was undone. Nobody has a match from it any more.');scheduleStats()}
 }
 async function removeMember(u){
   S.confirmDel=null;const name=realName(u);
@@ -875,6 +945,11 @@ function adminView(){
     control=h('div',{class:'panel stack'},h('h3',null,S.sending.label+'…'),
       h('div',{class:'prog'},h('i',{id:'prog',style:'width:'+(S.sending.total?(S.sending.done/S.sending.total*100):0).toFixed(1)+'%'})),
       h('p',{class:'hint'},'Keep this tab open until it finishes.'));
+  }else if(S.rounds.some(r=>r.undoing)){
+    const rd=S.rounds.find(r=>r.undoing);
+    control=h('div',{class:'banner warn stack'},h('b',null,'Undoing round '+rd.number+' didn’t finish.'),
+      h('p',null,'This happens if the tab closed halfway. Finishing is safe.'),
+      h('div',null,h('button',{class:'btn primary',type:'button',onclick:()=>finishUndo(rd)},'Finish undoing round '+rd.number)));
   }else if(maxSaved>N){
     const rd=S.rounds.find(r=>r.number===maxSaved);
     control=h('div',{class:'banner warn stack'},h('b',null,'Round '+maxSaved+' was saved but not everyone got their match.'),
@@ -887,8 +962,10 @@ function adminView(){
         h('p',{class:'muted'},plural(eligible,'member')+' will be paired. '+plural(pickers,'member')+' have picks in. The app suggests the pairs, you check them, then send.')),
       h('div',{class:'row',style:'align-items:flex-end'},
         h('div',{class:'field',style:'max-width:220px'},h('label',{for:'f-ends'},'Chats due by'),h('input',{id:'f-ends',type:'date',value:S.endsOn,onchange:e=>{S.endsOn=e.target.value}})),
-        h('button',{class:'btn primary',type:'button',disabled:eligible<2,onclick:generate},'Suggest pairs for round '+next)),
-      eligible<2?h('p',{class:'hint'},'At least two members from different campuses need to join first.'):null);
+        h('button',{class:'btn primary',type:'button',disabled:eligible<2&&!S.manual.length,onclick:generate},'Suggest pairs for round '+next)),
+      eligible<2&&!S.manual.length?h('p',{class:'hint'},'At least two members from different campuses need to join first.'):null,
+      manualEditor(),
+      N?undoBlock(N):null);
   }else control=previewPanel();
 
   return h('div',{class:'page'},
@@ -905,20 +982,31 @@ function adminView(){
     membersTable(last),
     chatsTable());
 }
+function undoBlock(N){
+  const rd=S.rounds.find(r=>r.number===N);if(!rd)return null;
+  const done=(rd.matches||[]).filter(m=>statusOf(m)!=='pending').length;
+  if(!S.confirmUndo)return h('p',{class:'hint',style:'border-top:1px solid var(--line);padding-top:14px'},'Sent round '+N+' by mistake? ',
+    h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmUndo=true;render()}},'Undo round '+N));
+  return h('div',{class:'banner warn stack'},h('b',null,'Undo round '+N+'?'),
+    h('p',null,'Everyone’s round '+N+' match disappears, including for people who already opened it, and the pairs count as never having met. Then you can send a new round '+N+'.'+(done?' '+plural(done,'chat')+' from this round were already marked, and those answers will be lost.':'')),
+    h('div',{class:'row'},h('button',{class:'btn small danger',type:'button',onclick:undoRound},'Undo round '+N),h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmUndo=false;render()}},'Keep it')));
+}
 function previewPanel(){
   const p=S.preview;const counts={};p.matches.forEach(m=>{counts[m.reason]=(counts[m.reason]||0)+1});const trios=p.matches.filter(m=>m.trio).length;
   return h('div',{class:'panel stack',style:'gap:16px'},
     h('div',{class:'row-between'},h('h2',null,'Suggested pairs for round '+p.round),
       h('div',{class:'row'},h('button',{class:'btn small',type:'button',onclick:()=>{S.shuffle++;generate()}},'Reshuffle'),h('button',{class:'btn small',type:'button',onclick:()=>{S.preview=null;S.shuffle=0;render()}},'Discard'))),
     h('div',{class:'row'},Object.keys(REASON).filter(k=>counts[k]).map(k=>h('span',{class:'tag'+(k==='mutual'?' good':'')},REASON[k]+': '+counts[k])),trios?h('span',{class:'tag'},'Groups of three: '+trios):null),
-    p.unmatched.length?h('p',{class:'banner warn'},'No valid partner for: '+p.unmatched.map(realName).join(', ')+'. Everyone left is on their campus and team, or they’ve already met. They’ll be first in line next round.'):null,
+    p.unmatched.length?h('p',{class:'banner warn'},'No valid partner for: '+p.unmatched.map(realName).join(', ')+'. Everyone left is on their campus and team, or they’ve already met. Pair them yourself below, or they’ll be first in line next round.'):null,
     p.resting.length?h('p',{class:'hint'},plural(p.resting.length,'member')+' sitting this round out (paused, or once a month and matched last round).'):null,
     p.matches.length?h('div',{class:'tbl-wrap'},h('table',{style:'min-width:620px'},
       h('thead',null,h('tr',null,h('th',null,'#'),h('th',null,'People'),h('th',null,'Campuses'),h('th',null,'Why'))),
       h('tbody',null,p.matches.map((m,i)=>h('tr',null,h('td',{class:'mono num muted'},String(i+1)),
         h('td',null,m.members.map((u,j)=>h('div',null,realName(u)+(j===0?' (books)':''),h('small',null,(S.profiles.get(u)||{}).codename||'')))),
         h('td',null,h('div',{class:'row'},m.members.map(u=>pill((S.profiles.get(u)||{}).campus)))),
-        h('td',null,h('div',{class:'row'},h('span',{class:'tag'+(m.reason==='mutual'?' good':'')},REASON[m.reason]),m.trio?h('span',{class:'tag'},'Group of three'):null))))))):null,
+        h('td',null,h('div',{class:'row'},h('span',{class:'tag'+(m.reason==='mutual'?' good':'')},REASON[m.reason]),m.trio?h('span',{class:'tag'},'Group of three'):null),
+          (()=>{const w=pairWarnings(m.members);return w.length?h('p',{class:'err',style:'margin-top:4px'},w.join('; ')):null})())))))):null,
+    manualEditor(),
     h('div',{class:'row',style:'align-items:flex-end'},
       h('div',{class:'field',style:'max-width:220px'},h('label',{for:'f-ends2'},'Chats due by'),h('input',{id:'f-ends2',type:'date',value:p.endsOn,onchange:e=>{p.endsOn=e.target.value}})),
       h('button',{class:'btn primary',type:'button',disabled:!p.matches.length,onclick:sendRound},'Send matches to '+plural(p.matches.reduce((t,m)=>t+m.members.length,0),'member'))),
@@ -987,6 +1075,7 @@ function dbError(e){
   const m=String(e.message||'');
   if(e.code==='42501'||/row-level security|permission denied/i.test(m))return {code:'invalid_argument',message:m};
   if(e.code==='PGRST301'||/JWT/i.test(m))return {code:'revoked',message:m};
+  if(e.code==='23505'||/duplicate key/i.test(m))return {code:'already_exists',message:m};
   return {code:'unavailable',message:m};
 }
 function makeDb(sb){
@@ -1011,6 +1100,8 @@ function makeDb(sb){
     return {
       get:fetchOne,
       async set(body){const r=await sb.from(table).upsert({id,data:body});if(r.error)throw dbError(r.error);refresh(table)},
+      // Insert only: fails with 'already_exists' instead of overwriting, so two P&O members can't send the same round.
+      async create(body){const r=await sb.from(table).insert({id,data:body});if(r.error)throw dbError(r.error);refresh(table)},
       async delete(){const r=await sb.from(table).delete().eq('id',id);if(r.error)throw dbError(r.error);refresh(table)},
       onSnapshot(next){return watch(table,fetchOne,next)}
     };
