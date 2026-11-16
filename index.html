@@ -251,7 +251,7 @@ const TEAMS=['Consulting','P&O','Operations','Finance','Business Development','M
 const ROLES=['Consultant','Project Leader','Associate Director','Director','Board'];
 const SKILLS=['Excel & modelling','Slides & storylining','Market research','Client communication','Case interviews','Public speaking','Project management','Data & coding','Design','Career advice'];
 const FREQ=[['monthly','Once a month'],['every','Every round'],['paused','Pause for now']];
-const REASON={mutual:'Picked each other',picked:'Picked',swap:'Skill swap',newlink:'New campus link',mix:'Cross-campus',team:'Same campus, other team',manual:'Set by P&O'};
+const REASON={mutual:'Picked each other',picked:'Picked',swap:'Skill swap',newlink:'New campus link',mix:'Cross-campus',sameteam:'Other campus, same team',team:'Same campus, other team',manual:'Set by P&O'};
 const STARTERS=['Ask why they chose their codename.','Swap the best project you have each worked on at 180DC.','Ask what their campus does better than yours.','Trade one thing you wish you had known in your first month.'];
 const GEO={London:[-0.13,51.51],Paris:[2.35,48.86],Madrid:[-3.7,40.42],Turin:[7.69,45.07],Berlin:[13.4,52.52],Warsaw:[21.01,52.23]};
 const LABEL={London:[-15,-12,'end'],Paris:[-15,20,'end'],Madrid:[0,30,'middle'],Turin:[0,30,'middle'],Berlin:[0,-18,'middle'],Warsaw:[0,-18,'middle']};
@@ -261,10 +261,12 @@ function pairKey(a,b){return a<b?a+'|'+b:b+'|'+a}
 function campusPair(a,b){return a<b?a+'|'+b:b+'|'+a}
 function overlap(a,b){const s=new Set(b||[]);return (a||[]).filter(x=>s.has(x))}
 function mulberry(seed){let t=seed>>>0;return function(){t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^(t>>>15),1|t);r=(r+Math.imul(r^(r>>>7),61|r))^r;return((r^(r>>>14))>>>0)/4294967296}}
-// Pairs one round. Never a repeat pair. First choice is always someone from another campus;
-// only when that runs out, someone from the same campus on a different team.
-// Order: mutual picks, then one-way picks (longest wait first), then everyone else by skill swap
-// and campus pairs that haven't talked yet. Anyone left over joins a pair as a group of three.
+// Pairs one round. Never a repeat pair, never two people from the same campus AND the same team.
+// Who counts as a good partner, best first:
+//   1. another campus, another team   2. another campus, same team   3. same campus, another team
+// Order: mutual picks, then one-way picks (longest wait first), then everyone else, filling level 1 for
+// as many people as possible before falling back to 2, then 3. Within a level: skill swap and campus
+// pairs that haven't talked yet. Anyone left over joins a pair as a group of three.
 // Pairs P&O set by hand ('fixed') go in first, exactly as given, and everyone else is paired around them.
 function makePairs(input){
   const {profiles,picks,history,round,edges,seed}=input;
@@ -286,6 +288,9 @@ function makePairs(input){
   const cross=(a,b)=>fresh(a,b)&&!home(a,b);
   const teamMix=(a,b)=>{if(!fresh(a,b)||!home(a,b))return false;const A=byId.get(a),B=byId.get(b);return !!A.team&&!!B.team&&A.team!==B.team};
   const ok=(a,b)=>cross(a,b)||teamMix(a,b);
+  const sameTeam=(a,b)=>{const A=byId.get(a),B=byId.get(b);return !!A.team&&A.team===B.team};
+  const lvl1=(a,b)=>cross(a,b)&&!sameTeam(a,b), lvl2=(a,b)=>cross(a,b)&&sameTeam(a,b);
+  const level=(a,b)=>lvl1(a,b)?1:lvl2(a,b)?2:teamMix(a,b)?3:9;
   const pk=u=>(picks[u]||[]).filter(v=>E.has(v)&&v!==u);
   const taken=new Set(),matches=[];
   const add=(members,reason)=>{members.forEach(u=>taken.add(u));matches.push({members,reason})};
@@ -293,14 +298,14 @@ function makePairs(input){
   const swapCount=(a,b)=>{const A=byId.get(a),B=byId.get(b);return overlap(A.teach,B.learn).length+overlap(B.teach,A.learn).length};
   const linkCount=(a,b)=>(edges||{})[campusPair(byId.get(a).campus,byId.get(b).campus)]||0;
   const score=(a,b)=>{const A=byId.get(a),B=byId.get(b);return Math.min(swapCount(a,b),4)*3+(A.team!==B.team?2:0)+(A.role!==B.role?1:0)+(!home(a,b)?4/(1+linkCount(a,b)):0)+rand()*0.5};
-  // 1. Picked each other. Cross-campus pairs go first.
+  // 1. Picked each other. Better levels go first.
   const mutual=[];
   for(const a of eligible)for(const b of pk(a))if(a<b&&pk(b).includes(a)&&ok(a,b))mutual.push([a,b]);
-  mutual.sort((x,y)=>(cross(y[0],y[1])-cross(x[0],x[1]))||(wait(y[0])+wait(y[1]))-(wait(x[0])+wait(x[1]))||jit.get(x[0])-jit.get(y[0]));
+  mutual.sort((x,y)=>(level(x[0],x[1])-level(y[0],y[1]))||(wait(y[0])+wait(y[1]))-(wait(x[0])+wait(x[1]))||jit.get(x[0])-jit.get(y[0]));
   for(const [a,b] of mutual)if(!taken.has(a)&&!taken.has(b))add([a,b],'mutual');
-  // 2. One-way picks, longest wait first. A pick on another campus beats one on your own.
+  // 2. One-way picks, longest wait first. Of someone's picks, the best level wins.
   for(const a of [...eligible].sort(order)){if(taken.has(a))continue;
-    const free=pk(a).filter(b=>!taken.has(b));const b=free.find(b=>cross(a,b))||free.find(b=>teamMix(a,b));
+    const free=pk(a).filter(b=>!taken.has(b)&&ok(a,b)).sort((x,y)=>level(a,x)-level(a,y));const b=free[0];
     if(b)add([a,b],'picked')}
   // 3. Everyone else, most constrained first.
   const greedy=(pool,rel,reasonOf)=>{let rest=pool.slice();const stuck=[];
@@ -314,13 +319,14 @@ function makePairs(input){
       rest=rest.filter(u=>u!==a&&u!==best);
     }
     return stuck.concat(rest)};
-  let left=greedy(eligible.filter(u=>!taken.has(u)),cross,(a,b)=>swapCount(a,b)>0?'swap':linkCount(a,b)===0?'newlink':'mix');
+  let left=greedy(eligible.filter(u=>!taken.has(u)),lvl1,(a,b)=>swapCount(a,b)>0?'swap':linkCount(a,b)===0?'newlink':'mix');
+  left=greedy(left,lvl2,()=>'sameteam');
   left=greedy(left,teamMix,()=>'team');
   // 4. Leftovers join a pair as a group of three, on another campus if possible.
   const unmatched=[];
   for(const u of left){
     let best=null,bs=-Infinity;
-    for(const rel of [cross,ok]){
+    for(const rel of [lvl1,cross,ok]){
       for(const m of matches){if(m.members.length!==2||m.reason==='manual'||!m.members.every(x=>rel(u,x)))continue;const sc=m.members.reduce((t,x)=>t+score(u,x),0);if(sc>bs){bs=sc;best=m}}
       if(best)break}
     if(best){best.members.push(u);best.trio=true;taken.add(u)}else unmatched.push(u);
@@ -623,7 +629,7 @@ function deckView(){
             h('li',null,'If you picked each other, you’re matched first.'),
             h('li',null,'Then one-way picks, if that person is free that round.'),
             h('li',null,'Everyone else is paired on skills.')),
-          h('p',{class:'hint'},'You always meet someone new, from another campus first. When nobody new is left there, it’s someone on your campus from another team.'),
+          h('p',{class:'hint'},'You always meet someone new. First choice: another campus and another team. Then another campus. Then someone on your campus from another team. Never someone from your own campus and team.'),
           h('p',{class:'hint'},h('span',{class:'chip hit'},'Green'),' skills line up with yours: they can teach what you want to learn, or want to learn what you teach.')))));
 }
 // New random order for everyone left, skipped cards included. Other campuses still come first.
