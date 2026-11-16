@@ -96,7 +96,7 @@ main{padding-block:26px 72px}
 .pill{--c:var(--muted);display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--f-body);color:var(--c);background:color-mix(in srgb,var(--c) 11%,transparent);border:1px solid color-mix(in srgb,var(--c) 32%,transparent);padding:2px 9px;border-radius:999px;white-space:nowrap}
 .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
 .c-paris{--c:var(--c-paris)}.c-london{--c:var(--c-london)}.c-berlin{--c:var(--c-berlin)}
-.c-madrid{--c:var(--c-madrid)}.c-turin{--c:var(--c-turin)}.c-warsaw{--c:var(--c-warsaw)}
+.c-madrid{--c:var(--c-madrid)}.c-turin{--c:var(--c-turin)}.c-warsaw{--c:var(--c-warsaw)}.c-other{--c:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font-size:13px;padding:3px 9px;border-radius:7px;background:var(--surface-2);color:var(--ink-2);border:1px solid transparent}
 .chip.hit{background:var(--good-soft);color:var(--good);border-color:color-mix(in srgb,var(--good) 32%,transparent);font-weight:600}
@@ -238,6 +238,12 @@ td small{display:block;color:var(--muted);font-size:12px}
 <script>
 'use strict';
 const CAMPUSES=['Paris','London','Berlin','Madrid','Turin','Warsaw'];
+// 'Other' is for members on exchange or a semester break. It never counts as anyone's own campus,
+// earns no passport stamp and isn't on the map.
+const OTHER='Other';
+const CAMPUS_OPTS=CAMPUSES.concat([OTHER]);
+function sameCampus(a,b){return !!a&&a===b&&a!==OTHER}
+function stampTotal(c){return CAMPUSES.filter(x=>x!==c).length}
 const TEAMS=['Consulting','P&O','Operations','Finance','Business Development','Marketing','Infrastructure & Automations','Presidency'];
 const ROLES=['Consultant','Project Leader','Associate Director','Director','Board'];
 const SKILLS=['Excel & modelling','Slides & storylining','Market research','Client communication','Case interviews','Public speaking','Project management','Data & coding','Design','Career advice'];
@@ -269,15 +275,17 @@ function makePairs(input){
   const wait=u=>round-(last[u]||0);
   const order=(a,b)=>wait(b)-wait(a)||jit.get(a)-jit.get(b);
   const fresh=(a,b)=>a!==b&&!met.has(pairKey(a,b));
-  const cross=(a,b)=>fresh(a,b)&&byId.get(a).campus!==byId.get(b).campus;
-  const teamMix=(a,b)=>{if(!fresh(a,b))return false;const A=byId.get(a),B=byId.get(b);return A.campus===B.campus&&!!A.team&&!!B.team&&A.team!==B.team};
+  // 'Other' (exchange, semester break) is never the same campus as anyone, not even another 'Other'.
+  const home=(a,b)=>{const x=byId.get(a).campus;return x===byId.get(b).campus&&x!=='Other'};
+  const cross=(a,b)=>fresh(a,b)&&!home(a,b);
+  const teamMix=(a,b)=>{if(!fresh(a,b)||!home(a,b))return false;const A=byId.get(a),B=byId.get(b);return !!A.team&&!!B.team&&A.team!==B.team};
   const ok=(a,b)=>cross(a,b)||teamMix(a,b);
   const pk=u=>(picks[u]||[]).filter(v=>E.has(v)&&v!==u);
   const taken=new Set(),matches=[];
   const add=(members,reason)=>{members.forEach(u=>taken.add(u));matches.push({members,reason})};
   const swapCount=(a,b)=>{const A=byId.get(a),B=byId.get(b);return overlap(A.teach,B.learn).length+overlap(B.teach,A.learn).length};
   const linkCount=(a,b)=>(edges||{})[campusPair(byId.get(a).campus,byId.get(b).campus)]||0;
-  const score=(a,b)=>{const A=byId.get(a),B=byId.get(b);return Math.min(swapCount(a,b),4)*3+(A.team!==B.team?2:0)+(A.role!==B.role?1:0)+(A.campus!==B.campus?4/(1+linkCount(a,b)):0)+rand()*0.5};
+  const score=(a,b)=>{const A=byId.get(a),B=byId.get(b);return Math.min(swapCount(a,b),4)*3+(A.team!==B.team?2:0)+(A.role!==B.role?1:0)+(!home(a,b)?4/(1+linkCount(a,b)):0)+rand()*0.5};
   // 1. Picked each other. Cross-campus pairs go first.
   const mutual=[];
   for(const a of eligible)for(const b of pk(a))if(a<b&&pk(b).includes(a)&&ok(a,b))mutual.push([a,b]);
@@ -421,7 +429,7 @@ function validPicks(){
 }
 // Someone from another campus, or (once those run out) someone on your campus from another team.
 // Teams are private, so the database tells us which people on your campus are on other teams.
-function canMeet(u,p){return p.campus!==S.me.campus||S.otherTeams.has(u)}
+function canMeet(u,p){return !sameCampus(p.campus,S.me.campus)||S.otherTeams.has(u)}
 let otT=null;
 function refreshOtherTeams(){clearTimeout(otT);otT=setTimeout(async()=>{
   try{const r=await SB.rpc('same_campus_other_teams');if(r.error)throw r.error;
@@ -431,7 +439,7 @@ function refreshOtherTeams(){clearTimeout(otT);otT=setTimeout(async()=>{
 function myStamps(){
   const map=new Map();const fb=(S.priv&&S.priv.feedback)||{};
   const ms=myMatches().slice().reverse();
-  for(const m of ms)if(fb[m.id]&&fb[m.id].status==='done')for(const p of m.partners||[])if(p.campus&&!map.has(p.campus))map.set(p.campus,m.round);
+  for(const m of ms)if(fb[m.id]&&fb[m.id].status==='done')for(const p of m.partners||[])if(p.campus&&p.campus!==OTHER&&!map.has(p.campus))map.set(p.campus,m.round);
   const fromStats=((S.stats&&S.stats.passports)||{})[S.uid]||[];
   for(const c of fromStats)if(!map.has(c)){const m=ms.find(x=>(x.partners||[]).some(p=>p.campus===c));map.set(c,m?m.round:null)}
   return map;
@@ -440,7 +448,7 @@ function myStamps(){
 /* ---------- the ticket card ---------- */
 function ticketEl(p,opts){
   const preview=!!(opts&&opts.preview);const me=S.me||{};
-  const home=!preview&&!!p.campus&&p.campus===me.campus;
+  const home=!preview&&sameCampus(p.campus,me.campus);
   const myLearn=new Set(me.learn||[]),myTeach=new Set(me.teach||[]);
   const chips=(list,mine)=>list&&list.length?list.map(t=>h('span',{class:'chip'+(!preview&&mine.has(t)?' hit':'')},t)):h('span',{class:'muted'},preview?'Pick up to 3 below':'Nothing listed');
   const swap=preview?0:overlap(p.teach,me.learn).length+overlap(me.teach,p.learn).length;
@@ -481,8 +489,8 @@ function profileForm(o){
   return h('form',{class:'form',novalidate:true,onsubmit:e=>{e.preventDefault();o.onSubmit()}},
     text('codename','Codename','text','This is the only name people see in the deck. Make it something nobody can trace to you: Night Owl, Pasta Maker.',24),
     h('div',{class:'two'},text('name','Your real name','text','Only P&O and your matches see it.',60),text('email','Email for your match','email','Your match uses it to set up the call.',90)),
-    h('div',{class:'field'},h('div',{class:'three'},sel('campus','Campus',CAMPUSES),sel('team','Team',TEAMS),sel('role','Role',ROLES)),
-      h('p',{class:'hint'},'Your team and role stay off your card, so nobody can work out who you are. Only P&O and your matches see them.')),
+    h('div',{class:'field'},h('div',{class:'three'},sel('campus','Campus',CAMPUS_OPTS),sel('team','Team',TEAMS),sel('role','Role',ROLES)),
+      h('p',{class:'hint'},'On exchange or a semester break? Choose Other as your campus. Your team and role stay off your card, so nobody can work out who you are. Only P&O and your matches see them.')),
     multi('teach','Things you can teach','Up to 3. People who want to learn these will see a match.'),
     multi('learn','Things you want to learn','Up to 3.'),
     h('div',{class:'field'},h('label',{for:'f-fun'},'Fun fact'),
@@ -559,7 +567,7 @@ function deckView(){
   const me=S.me;const picks=validPicks();const met=myMet();
   // Other campuses first. Once you've seen all of them, people on your campus from other teams.
   const pool=[...S.profiles].filter(([u,p])=>u!==S.uid&&p.campus&&canMeet(u,p)&&p.freq!=='paused'&&!met.has(u)&&!picks.includes(u)).map(([u,p])=>Object.assign({uid:u},p));
-  const away=p=>p.campus!==me.campus?0:1;
+  const away=p=>sameCampus(p.campus,me.campus)?1:0;
   pool.sort((a,b)=>away(a)-away(b)||hash(S.uid+a.uid)-hash(S.uid+b.uid));
   const skipped=new Set(S.skipOrder);
   const fresh=pool.filter(p=>!skipped.has(p.uid));
@@ -596,7 +604,7 @@ function deckView(){
         h('div',{class:'panel stack'},
           h('div',{class:'row-between'},h('h3',null,'Your picks'),h('span',{class:'mono muted num'},picks.length+' of 3')),
           picks.length?h('ul',{class:'picks'},picks.map(u=>{const p=S.profiles.get(u);return h('li',null,
-            h('div',{class:'stack',style:'gap:4px'},h('b',null,p.codename),h('div',{class:'row'},pill(p.campus),p.campus===me.campus?h('span',{class:'hint'},'Your campus · another team'):null)),
+            h('div',{class:'stack',style:'gap:4px'},h('b',null,p.codename),h('div',{class:'row'},pill(p.campus),sameCampus(p.campus,me.campus)?h('span',{class:'hint'},'Your campus · another team'):null)),
             h('button',{class:'btn small',type:'button','aria-label':'Remove '+p.codename,onclick:()=>removePick(u)},'Remove'))}))
             :h('p',{class:'muted'},'Swipe right on up to three people you’d like to meet.'),
           h('p',{class:'hint'},'Picks are private. Only P&O sees them, and nobody is told who didn’t pick them.')),
@@ -725,7 +733,7 @@ async function saveFb(){
 function passportView(){
   const me=S.me;const stamps=myStamps();
   const others=CAMPUSES.filter(c=>c!==me.campus);
-  const got=others.filter(c=>stamps.has(c));const missing=others.filter(c=>!stamps.has(c));
+  const got=others.filter(c=>stamps.has(c));const missing=others.filter(c=>!stamps.has(c));const total=others.length;
   const counts=new Map();for(const [u,list] of Object.entries((S.stats&&S.stats.passports)||{}))if(S.profiles.has(u))counts.set(u,list.length);
   counts.set(S.uid,Math.max(counts.get(S.uid)||0,got.length));
   const rows=[...counts].filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]||(S.profiles.get(a[0]).codename||'').localeCompare(S.profiles.get(b[0]).codename||''));
@@ -734,19 +742,19 @@ function passportView(){
   return h('div',{class:'page'},
     h('section',{class:'passport'},
       h('div',{class:'pp-cover'},
-        h('div',{class:'stack',style:'gap:4px'},h('span',{class:'lbl'},'Campus passport · home campus '+me.campus),h('h2',null,me.codename)),
-        h('div',{style:'text-align:right'},h('div',{class:'pp-count'},got.length+'/5'),h('span',{class:'lbl'},'stamps'))),
+        h('div',{class:'stack',style:'gap:4px'},h('span',{class:'lbl'},'Campus passport · '+(me.campus===OTHER?'on exchange or a break':'home campus '+me.campus)),h('h2',null,me.codename)),
+        h('div',{style:'text-align:right'},h('div',{class:'pp-count'},got.length+'/'+total),h('span',{class:'lbl'},'stamps'))),
       h('div',{class:'stamps'},others.map(c=>{const on=stamps.has(c);const r=stamps.get(c);
         return h('div',{class:'stamp '+(on?'on ':'off ')+ck(c),style:on?'--rot:'+((hash(S.uid+c)%17)-8)+'deg':null},
           h('span',{class:'city'},c),h('small',null,on?(r?'Round '+r:'Stamped'):'Not yet'))})),
-      h('div',{style:'padding:0 22px 22px'},h('p',{class:got.length===5?'banner':'muted'},
-        got.length===5?'Full passport. You’ll get a shout-out at the next all hands.'
+      h('div',{style:'padding:0 22px 22px'},h('p',{class:got.length===total?'banner':'muted'},
+        got.length===total?'Full passport. You’ll get a shout-out at the next all hands.'
         :plural(missing.length,'campus','campuses')+' to go: '+missing.join(', ')+'. Look for them in the deck.'))),
     h('section',{class:'stack'},
       h('div',{class:'row-between'},h('h3',null,'Most stamps'),h('span',{class:'hint'},'Codenames only')),
       rows.length?h('div',{class:'panel',style:'padding:6px 18px'},h('ol',{class:'board'},top.map(([u,n])=>{const p=S.profiles.get(u);const i=rows.findIndex(r=>r[0]===u);
         return h('li',{class:u===S.uid?'me':null},h('span',{class:'mono muted num'},String(i+1)),h('b',{style:'overflow-wrap:anywhere'},p.codename+(u===S.uid?' (you)':'')),pill(p.campus),
-          h('span',{class:'dots','aria-label':n+' of 5 stamps'},'●'.repeat(n)+'○'.repeat(Math.max(0,5-n))))})))
+          h('span',{class:'dots','aria-label':n+' of '+stampTotal(p.campus)+' stamps'},'●'.repeat(n)+'○'.repeat(Math.max(0,stampTotal(p.campus)-n))))})))
       :h('p',{class:'muted'},'No stamps yet. They appear when chats are marked done.')));
 }
 
@@ -789,8 +797,8 @@ function buildStats(){
   const edges={},pass={},ratings=[];let done=0,missed=0;const ms=allMatches();
   for(const m of ms){const st=statusOf(m);
     if(st==='done'){done++;const cs=m.campuses||[];
-      for(let i=0;i<m.members.length;i++)for(let j=i+1;j<m.members.length;j++){if(cs[i]&&cs[j]&&cs[i]!==cs[j]){const k=campusPair(cs[i],cs[j]);edges[k]=(edges[k]||0)+1}}
-      m.members.forEach((u,i)=>{const set=pass[u]||(pass[u]=new Set());cs.forEach((c,j)=>{if(j!==i&&c&&c!==cs[i])set.add(c)})})}
+      for(let i=0;i<m.members.length;i++)for(let j=i+1;j<m.members.length;j++){if(cs[i]&&cs[j]&&cs[i]!==cs[j]&&cs[i]!==OTHER&&cs[j]!==OTHER){const k=campusPair(cs[i],cs[j]);edges[k]=(edges[k]||0)+1}}
+      m.members.forEach((u,i)=>{const set=pass[u]||(pass[u]=new Set());cs.forEach((c,j)=>{if(j!==i&&c&&c!==cs[i]&&c!==OTHER)set.add(c)})})}
     else if(st==='missed')missed++;
     for(const u of m.members){const f=feedbackFor(u,m.id);if(f&&f.status==='done'&&f.rating)ratings.push(f.rating)}}
   const passports={};for(const u of Object.keys(pass).sort())passports[u]=[...pass[u]].sort();
@@ -930,7 +938,7 @@ function membersTable(last){
           h('td',null,pv.team||p.team||'',h('small',null,pv.role||p.role||'')),
           h('td',null,(FREQ.find(f=>f[0]===p.freq)||FREQ[0])[1]),
           h('td',{class:'num'},String((pv.picks||[]).length)),
-          h('td',{class:'num'},String((pass[u]||[]).length)+'/5'),
+          h('td',{class:'num'},String((pass[u]||[]).length)+'/'+stampTotal(p.campus)),
           h('td',{class:'num mono'},last[u]?'R'+last[u]:'—'),
           h('td',null,pv.email||''),
           h('td',null,S.confirmDel===u?h('div',{class:'row'},h('button',{class:'btn small danger',type:'button',onclick:()=>removeMember(u)},'Remove'),h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmDel=null;render()}},'Keep'))
