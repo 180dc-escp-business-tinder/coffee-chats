@@ -237,13 +237,16 @@ td small{display:block;color:var(--muted);font-size:12px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script>
 'use strict';
-const CAMPUSES=['Paris','London','Berlin','Madrid','Turin','Warsaw'];
+// 180DC ESCP's campuses. (Warsaw has no members yet: add 'Warsaw' back here when it does.)
+const CAMPUSES=['Paris','London','Berlin','Madrid','Turin'];
 // 'Other' is for members on exchange or a semester break. It never counts as anyone's own campus,
 // earns no passport stamp and isn't on the map.
 const OTHER='Other';
 const CAMPUS_OPTS=CAMPUSES.concat([OTHER]);
 function sameCampus(a,b){return !!a&&a===b&&a!==OTHER}
-function stampTotal(c){return CAMPUSES.filter(x=>x!==c).length}
+// A passport has one stamp per campus: your home campus is stamped when you join, the rest come from chats.
+function stampTotal(){return CAMPUSES.length}
+function homeStamp(c){return CAMPUSES.includes(c)?1:0}
 const TEAMS=['Consulting','P&O','Operations','Finance','Business Development','Marketing','Infrastructure & Automations','Presidency'];
 const ROLES=['Consultant','Project Leader','Associate Director','Director','Board'];
 const SKILLS=['Excel & modelling','Slides & storylining','Market research','Client communication','Case interviews','Public speaking','Project management','Data & coding','Design','Career advice'];
@@ -329,7 +332,7 @@ function makePairs(input){
 const S={phase:'loading',tab:'deck',db:null,user:null,uid:null,isAdmin:false,canWrite:null,
   profiles:new Map(),me:null,priv:null,inbox:null,round:null,stats:null,allPriv:new Map(),rounds:[],loaded:{},
   skipOrder:[],optPicks:null,form:null,formErr:'',saving:false,fb:null,preview:null,shuffle:0,endsOn:null,
-  sending:null,confirmDel:null,revealed:new Set(),pending:false,dragging:false,otherTeams:new Set(),
+  sending:null,confirmDel:null,revealed:new Set(),pending:false,dragging:false,otherTeams:new Set(),deckSeed:0,
   manual:[],manualPick:null,confirmUndo:false};
 const $view=document.getElementById('view'),$tabs=document.getElementById('tabs'),$round=document.getElementById('round');
 
@@ -573,7 +576,7 @@ function deckView(){
   // Other campuses first. Once you've seen all of them, people on your campus from other teams.
   const pool=[...S.profiles].filter(([u,p])=>u!==S.uid&&p.campus&&canMeet(u,p)&&p.freq!=='paused'&&!met.has(u)&&!picks.includes(u)).map(([u,p])=>Object.assign({uid:u},p));
   const away=p=>sameCampus(p.campus,me.campus)?1:0;
-  pool.sort((a,b)=>away(a)-away(b)||hash(S.uid+a.uid)-hash(S.uid+b.uid));
+  pool.sort((a,b)=>away(a)-away(b)||hash(S.uid+a.uid+':'+S.deckSeed)-hash(S.uid+b.uid+':'+S.deckSeed));
   const skipped=new Set(S.skipOrder);
   const fresh=pool.filter(p=>!skipped.has(p.uid));
   const again=S.skipOrder.map(u=>pool.find(p=>p.uid===u)).filter(Boolean);
@@ -596,6 +599,7 @@ function deckView(){
       h('div',{class:'stage'},under,card),
       h('div',{class:'deck-actions'},
         h('button',{class:'btn',type:'button',id:'skip-btn',onclick:()=>fly(card,-1,doSkip)},'Skip'),
+        h('button',{class:'btn',type:'button',id:'shuffle-btn',title:'Shuffle the deck',onclick:shuffleDeck},'Shuffle'),
         h('button',{class:'btn primary',type:'button',id:'meet-btn',disabled:full,onclick:()=>fly(card,1,doMeet)},full?'3 picks used':'Want to meet')),
       h('p',{class:'hint',style:'text-align:center;margin-top:10px'},
         freshAway?(plural(freshAway,'profile')+' from other campuses left to see · swipe, or use ← →')
@@ -622,6 +626,8 @@ function deckView(){
           h('p',{class:'hint'},'You always meet someone new, from another campus first. When nobody new is left there, it’s someone on your campus from another team.'),
           h('p',{class:'hint'},h('span',{class:'chip hit'},'Green'),' skills line up with yours: they can teach what you want to learn, or want to learn what you teach.')))));
 }
+// New random order for everyone left, skipped cards included. Other campuses still come first.
+function shuffleDeck(){S.deckSeed=(S.deckSeed||0)+1+Math.floor(Math.random()*1e6);S.skipOrder=[];render();toast('Deck shuffled.')}
 async function addPick(u){const next=validPicks().concat(u).slice(0,3);S.optPicks=next;render();
   const ok=await save('private/'+S.uid,Object.assign({},S.priv,{picks:next}));
   if(ok)toast('Picked. '+(3-next.length)+' pick'+(3-next.length===1?'':'s')+' left.');else{S.optPicks=null;render()}}
@@ -738,10 +744,11 @@ async function saveFb(){
 /* ---------- passport ---------- */
 function passportView(){
   const me=S.me;const stamps=myStamps();
-  const others=CAMPUSES.filter(c=>c!==me.campus);
-  const got=others.filter(c=>stamps.has(c));const missing=others.filter(c=>!stamps.has(c));const total=others.length;
+  const home=CAMPUSES.includes(me.campus)?me.campus:null;
+  const missing=CAMPUSES.filter(c=>c!==home&&!stamps.has(c));const total=stampTotal();const gotN=total-missing.length;
+  // Leaderboard: stamps earned from chats (home stamp added on display), so it only lists people who've had a chat.
   const counts=new Map();for(const [u,list] of Object.entries((S.stats&&S.stats.passports)||{}))if(S.profiles.has(u))counts.set(u,list.length);
-  counts.set(S.uid,Math.max(counts.get(S.uid)||0,got.length));
+  counts.set(S.uid,Math.max(counts.get(S.uid)||0,gotN-homeStamp(me.campus)));
   const rows=[...counts].filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]||(S.profiles.get(a[0]).codename||'').localeCompare(S.profiles.get(b[0]).codename||''));
   let top=rows.slice(0,10);const myIdx=rows.findIndex(r=>r[0]===S.uid);
   if(myIdx>=10)top=top.concat([rows[myIdx]]);
@@ -749,23 +756,24 @@ function passportView(){
     h('section',{class:'passport'},
       h('div',{class:'pp-cover'},
         h('div',{class:'stack',style:'gap:4px'},h('span',{class:'lbl'},'Campus passport · '+(me.campus===OTHER?'on exchange or a break':'home campus '+me.campus)),h('h2',null,me.codename)),
-        h('div',{style:'text-align:right'},h('div',{class:'pp-count'},got.length+'/'+total),h('span',{class:'lbl'},'stamps'))),
-      h('div',{class:'stamps'},others.map(c=>{const on=stamps.has(c);const r=stamps.get(c);
+        h('div',{style:'text-align:right'},h('div',{class:'pp-count'},gotN+'/'+total),h('span',{class:'lbl'},'stamps'))),
+      h('div',{class:'stamps'},CAMPUSES.map(c=>{const isHome=c===home;const on=isHome||stamps.has(c);const r=stamps.get(c);
         return h('div',{class:'stamp '+(on?'on ':'off ')+ck(c),style:on?'--rot:'+((hash(S.uid+c)%17)-8)+'deg':null},
-          h('span',{class:'city'},c),h('small',null,on?(r?'Round '+r:'Stamped'):'Not yet'))})),
-      h('div',{style:'padding:0 22px 22px'},h('p',{class:got.length===total?'banner':'muted'},
-        got.length===total?'Full passport. You’ll get a shout-out at the next all hands.'
+          h('span',{class:'city'},c),h('small',null,isHome?'Home campus':on?(r?'Round '+r:'Stamped'):'Not yet'))})),
+      h('div',{style:'padding:0 22px 22px'},h('p',{class:!missing.length?'banner':'muted'},
+        !missing.length?'Full passport. You’ll get a shout-out at the next all hands.'
         :plural(missing.length,'campus','campuses')+' to go: '+missing.join(', ')+'. Look for them in the deck.'))),
     h('section',{class:'stack'},
       h('div',{class:'row-between'},h('h3',null,'Most stamps'),h('span',{class:'hint'},'Codenames only')),
       rows.length?h('div',{class:'panel',style:'padding:6px 18px'},h('ol',{class:'board'},top.map(([u,n])=>{const p=S.profiles.get(u);const i=rows.findIndex(r=>r[0]===u);
         return h('li',{class:u===S.uid?'me':null},h('span',{class:'mono muted num'},String(i+1)),h('b',{style:'overflow-wrap:anywhere'},p.codename+(u===S.uid?' (you)':'')),pill(p.campus),
-          h('span',{class:'dots','aria-label':n+' of '+stampTotal(p.campus)+' stamps'},'●'.repeat(n)+'○'.repeat(Math.max(0,stampTotal(p.campus)-n))))})))
+          (()=>{const k=Math.min(stampTotal(),n+homeStamp(p.campus));return h('span',{class:'dots','aria-label':k+' of '+stampTotal()+' stamps'},'●'.repeat(k)+'○'.repeat(Math.max(0,stampTotal()-k)))})())})))
       :h('p',{class:'muted'},'No stamps yet. They appear when chats are marked done.')));
 }
 
 /* ---------- map ---------- */
-function proj(c){const g=GEO[c];return [70+(g[0]+3.7)/24.71*500,50+(52.52-g[1])/12.1*250]}
+// Fits the campuses in use (Madrid to Berlin) into the 640-wide map.
+function proj(c){const g=GEO[c];const xs=CAMPUSES.map(k=>GEO[k][0]),lo=Math.min(...xs),hi=Math.max(...xs);return [90+(g[0]-lo)/(hi-lo)*460,50+(52.52-g[1])/12.1*250]}
 function allPairs(edges){const out=[];for(let i=0;i<CAMPUSES.length;i++)for(let j=i+1;j<CAMPUSES.length;j++){const a=CAMPUSES[i],b=CAMPUSES[j];out.push({a,b,n:(edges||{})[campusPair(a,b)]||0})}return out}
 function mapSvg(edges){
   const pairs=allPairs(edges);const linked=pairs.filter(p=>p.n>0).length;
@@ -779,16 +787,16 @@ function mapSvg(edges){
   for(const c of CAMPUSES){const [x,y]=proj(c);const l=LABEL[c];
     g3.append(s('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:9,class:'m-node',style:'fill:var(--c-'+c.toLowerCase()+')'}),
       s('text',{x:(x+l[0]).toFixed(1),y:(y+l[1]).toFixed(1),'text-anchor':l[2],class:'m-label'},c))}
-  return s('svg',{viewBox:'0 0 640 345',class:'map',role:'img','aria-label':'Chats between campuses: '+linked+' of 15 campus pairs connected'},g1,g2,g3);
+  return s('svg',{viewBox:'0 0 640 345',class:'map',role:'img','aria-label':'Chats between campuses: '+linked+' of '+pairs.length+' campus pairs connected'},g1,g2,g3);
 }
 function mapView(){
-  const st=S.stats||{};const pairs=allPairs(st.edges);const quiet=pairs.filter(p=>!p.n);const linked=15-quiet.length;
+  const st=S.stats||{};const pairs=allPairs(st.edges);const quiet=pairs.filter(p=>!p.n);const linked=pairs.length-quiet.length;
   return h('div',{class:'page'},
     h('section',{class:'stack'},h('h2',null,linked?'Which campuses are talking':'No campus pairs connected yet'),
       h('p',{class:'muted',style:'max-width:60ch'},'Each line is a pair of campuses. It thickens with every chat marked done. Dotted lines are pairs that haven’t had a chat yet, and P&O pairs those first.')),
     h('div',{class:'kpis'},
       h('div',{class:'kpi'},h('span',{class:'lbl'},'Chats done'),h('b',null,String(st.done||0))),
-      h('div',{class:'kpi'},h('span',{class:'lbl'},'Campus pairs linked'),h('b',null,linked+'/15')),
+      h('div',{class:'kpi'},h('span',{class:'lbl'},'Campus pairs linked'),h('b',null,linked+'/'+pairs.length)),
       h('div',{class:'kpi'},h('span',{class:'lbl'},'Usefulness'),h('b',null,st.avgRating!=null?st.avgRating.toFixed(1)+'/5':'—')),
       h('div',{class:'kpi'},h('span',{class:'lbl'},'Members in the deck'),h('b',null,String(S.profiles.size)))),
     h('div',{class:'map-wrap'},mapSvg(st.edges)),
@@ -1026,7 +1034,7 @@ function membersTable(last){
           h('td',null,pv.team||p.team||'',h('small',null,pv.role||p.role||'')),
           h('td',null,(FREQ.find(f=>f[0]===p.freq)||FREQ[0])[1]),
           h('td',{class:'num'},String((pv.picks||[]).length)),
-          h('td',{class:'num'},String((pass[u]||[]).length)+'/'+stampTotal(p.campus)),
+          h('td',{class:'num'},String(Math.min(stampTotal(),(pass[u]||[]).length+homeStamp(p.campus)))+'/'+stampTotal()),
           h('td',{class:'num mono'},last[u]?'R'+last[u]:'—'),
           h('td',null,pv.email||''),
           h('td',null,S.confirmDel===u?h('div',{class:'row'},h('button',{class:'btn small danger',type:'button',onclick:()=>removeMember(u)},'Remove'),h('button',{class:'btn small',type:'button',onclick:()=>{S.confirmDel=null;render()}},'Keep'))
